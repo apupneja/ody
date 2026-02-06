@@ -854,26 +854,11 @@ const InspectorView = () => {
   const causalVars = selectedNode?.worldState?.causalVars || {};
   const facts = selectedNode?.worldState?.facts || {};
 
-  const factions = Object.entries(entities).filter(([, e]) => e.type === 'faction').map(([id, e]) => ({
-    code: id.slice(0, 3).toUpperCase(),
-    name: e.name,
-    status: e.status,
-    percent: statusToPercent(e.status),
-    color: statusBarColor(statusToPercent(e.status)),
-  }));
+  const deltas = selectedNode?.deltas || null;
 
-  const persons = Object.entries(entities).filter(([, e]) => e.type === 'person').map(([id, e]) => ({
-    id,
-    name: e.name,
-    role: e.properties?.role || e.status || 'Unknown',
-    initials: e.name ? e.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : id.slice(0, 2).toUpperCase(),
-    status: e.status,
-  }));
-
-  const escalation = causalVars.escalation || 50;
-  const escalationLevel = escalation >= 80 ? 'CRITICAL' : escalation >= 60 ? 'ELEVATED' : escalation >= 40 ? 'GUARDED' : 'LOW';
-  const defconLevel = escalation >= 80 ? 1 : escalation >= 60 ? 2 : escalation >= 40 ? 3 : 4;
-  const gaugeOffset = 339.292 * (1 - escalation / 100);
+  const entityEntries = Object.entries(entities);
+  const causalVarEntries = Object.entries(causalVars);
+  const factEntries = Object.entries(facts);
 
   return (
     <SimLayout>
@@ -888,139 +873,158 @@ const InspectorView = () => {
             </div>
             <div className="flex gap-6">
               <div className="text-right">
-                <span className="block text-[10px] text-white/25 uppercase tracking-wider">Factions</span>
-                <span className="text-xl font-mono text-white/80">{factions.length}</span>
+                <span className="block text-[10px] text-white/25 uppercase tracking-wider">Entities</span>
+                <span className="text-xl font-mono text-white/80">{entityEntries.length}</span>
               </div>
               <div className="w-[1px] h-10 bg-white/[0.06]" />
               <div className="text-right">
-                <span className="block text-[10px] text-white/25 uppercase tracking-wider">Active Facts</span>
-                <span className="text-xl font-mono text-[#E8E55E]">{Object.keys(facts).length}</span>
+                <span className="block text-[10px] text-white/25 uppercase tracking-wider">Causal Vars</span>
+                <span className="text-xl font-mono text-white/80">{causalVarEntries.length}</span>
+              </div>
+              <div className="w-[1px] h-10 bg-white/[0.06]" />
+              <div className="text-right">
+                <span className="block text-[10px] text-white/25 uppercase tracking-wider">Facts</span>
+                <span className="text-xl font-mono text-[#E8E55E]">{factEntries.length}</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-12 gap-6 pb-10">
-            {/* Left column */}
-            <div className="col-span-5 flex flex-col gap-6">
-              <Card className="p-0 overflow-hidden h-96 relative group">
-                <div className="absolute inset-0 bg-black">
-                  <img src="https://images.unsplash.com/photo-1589519160732-5796a59b2521?q=80&w=2574&auto=format&fit=crop" className="w-full h-full object-cover opacity-15 grayscale invert" alt="Map" />
-                  <div className="absolute inset-0 bg-blue-900/5 mix-blend-overlay" />
-                  {factions.slice(0, 4).map((f, i) => {
-                    const positions = [{ top: '25%', left: '25%' }, { bottom: '33%', right: '33%' }, { top: '50%', left: '50%' }, { top: '35%', right: '25%' }];
-                    const pos = positions[i];
-                    const color = f.percent <= 20 ? 'bg-red-500' : f.percent >= 60 ? 'bg-[#E8E55E]' : 'bg-white/80';
-                    return (
-                      <React.Fragment key={f.code}>
-                        {f.percent <= 20 && <div className={`absolute w-3 h-3 ${color} rounded-full animate-ping`} style={pos} />}
-                        <div className={`absolute w-3 h-3 ${color} rounded-full border-2 border-black`} style={pos} />
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-                <div className="absolute top-4 left-4"><Tag className="bg-black/80 backdrop-blur border-white/10 text-white/60">Geopolitical Heatmap</Tag></div>
-                <div className="absolute bottom-4 left-4 flex flex-col gap-2 p-3 bg-black/80 backdrop-blur rounded border border-white/[0.06] text-[10px] text-white/50">
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[#E8E55E]" />High Tension</div>
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-white/80" />Stable</div>
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500" />Conflict</div>
+          {/* Deltas */}
+          {deltas && (
+            <div className="mb-6">
+              <Card className="p-6">
+                <h3 className="text-sm font-medium mb-4 text-white/80">Deltas <span className="text-white/25 font-normal">— changes at this event</span></h3>
+                <div className="grid grid-cols-3 gap-6">
+                  {deltas.entityChanges && deltas.entityChanges.length > 0 && (
+                    <div>
+                      <h4 className="text-[10px] uppercase tracking-wider text-white/25 mb-3">Entity Changes</h4>
+                      <div className="space-y-2">
+                        {deltas.entityChanges.map((change, i) => (
+                          <div key={i} className="p-2.5 rounded bg-white/[0.02] border border-white/[0.06]">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[11px] font-medium text-white/60">{change.entityId}</span>
+                              <span className="text-[10px] text-white/20 font-mono">.{change.field}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px]">
+                              <span className="text-red-400/60">{String(change.oldValue ?? 'null')}</span>
+                              <span className="text-white/15">→</span>
+                              <span className="text-emerald-400/60">{String(change.newValue ?? 'null')}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {deltas.factChanges && deltas.factChanges.length > 0 && (
+                    <div>
+                      <h4 className="text-[10px] uppercase tracking-wider text-white/25 mb-3">Fact Changes</h4>
+                      <div className="space-y-2">
+                        {deltas.factChanges.map((change, i) => (
+                          <div key={i} className="p-2.5 rounded bg-white/[0.02] border border-white/[0.06]">
+                            <span className="text-[11px] font-medium text-white/60 block mb-1">{change.factId}</span>
+                            {change.oldValue === null ? (
+                              <div className="text-[10px] text-emerald-400/60">+ {typeof change.newValue === 'object' ? change.newValue.statement : String(change.newValue)}</div>
+                            ) : change.newValue === null ? (
+                              <div className="text-[10px] text-red-400/60">- {typeof change.oldValue === 'object' ? change.oldValue.statement : String(change.oldValue)}</div>
+                            ) : (
+                              <div className="space-y-1 text-[10px]">
+                                <div className="text-red-400/60">- {typeof change.oldValue === 'object' ? change.oldValue.statement : String(change.oldValue)}</div>
+                                <div className="text-emerald-400/60">+ {typeof change.newValue === 'object' ? change.newValue.statement : String(change.newValue)}</div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {deltas.causalVarChanges && deltas.causalVarChanges.length > 0 && (
+                    <div>
+                      <h4 className="text-[10px] uppercase tracking-wider text-white/25 mb-3">Causal Var Changes</h4>
+                      <div className="space-y-2">
+                        {deltas.causalVarChanges.map((change, i) => (
+                          <div key={i} className="p-2.5 rounded bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+                            <span className="text-[11px] font-mono text-white/60">{change.varName}</span>
+                            <span className={`text-sm font-mono ${change.delta > 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
+                              {change.delta > 0 ? '+' : ''}{change.delta}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Card>
+            </div>
+          )}
+
+          <div className="grid grid-cols-12 gap-6 pb-10">
+            {/* Entities */}
+            <div className="col-span-5 flex flex-col gap-6">
               <Card className="p-6">
-                <h3 className="text-sm font-medium mb-4 text-white/80">Faction Status</h3>
+                <h3 className="text-sm font-medium mb-4 text-white/80">Entities</h3>
                 <div className="space-y-4">
-                  {factions.map((rel, idx) => (
-                    <div key={idx} className="flex justify-between items-center group cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center text-[10px] text-white/40">{rel.code}</div>
-                        <div>
-                          <span className="text-sm text-white/60 block">{rel.name}</span>
-                          <span className="text-[10px] text-white/25">{rel.status}</span>
+                  {entityEntries.map(([id, entity]) => (
+                    <div key={id} className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white/70">{entity.name || id}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/30">{entity.type}</span>
                         </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/10 text-white/40">{entity.status}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-[3px] bg-white/5 rounded-full overflow-hidden"><div className={`h-full ${rel.color}`} style={{ width: `${rel.percent}%` }} /></div>
-                        <span className="text-xs font-mono w-8 text-right text-white/40">{rel.percent}%</span>
-                      </div>
+                      {entity.properties && Object.keys(entity.properties).length > 0 && (
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                          {Object.entries(entity.properties).map(([key, val]) => (
+                            <span key={key} className="text-[10px] text-white/25">
+                              <span className="text-white/15">{key}:</span> {String(val)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </Card>
             </div>
 
-            {/* Middle column */}
+            {/* Causal Variables */}
             <div className="col-span-4 flex flex-col gap-6">
               <Card className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-sm font-medium text-white/80">Escalation Level</h3>
-                  <svg className="w-4 h-4 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                </div>
-                <div className="flex justify-center mb-6 relative">
-                  <svg width="120" height="120" viewBox="0 0 120 120" className="transform -rotate-90">
-                    <circle cx="60" cy="60" r="54" fill="none" stroke="#1a1a1a" strokeWidth="8" />
-                    <circle cx="60" cy="60" r="54" fill="none" stroke="#E8E55E" strokeWidth="8" strokeDasharray="339.292" strokeDashoffset={gaugeOffset} className="transition-all duration-700" />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-semibold">DEF {defconLevel}</span>
-                    <span className="text-[10px] text-white/25">{escalationLevel}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/[0.03] p-3 rounded"><span className="block text-[10px] text-white/25 mb-1">ESCALATION</span><span className="text-sm font-mono text-white/70">{escalation}</span></div>
-                  <div className="bg-white/[0.03] p-3 rounded"><span className="block text-[10px] text-white/25 mb-1">MORALE</span><span className="text-sm font-mono text-[#E8E55E]">{causalVars.morale || 50}</span></div>
-                </div>
-              </Card>
-              <Card className="p-6 flex-grow">
                 <h3 className="text-sm font-medium mb-4 text-white/80">Causal Variables</h3>
                 <div className="space-y-6">
-                  {Object.entries(causalVars).map(([key, value]) => (
+                  {causalVarEntries.map(([key, value]) => (
                     <div key={key}>
                       <div className="flex justify-between text-xs mb-1.5">
-                        <span className="text-white/30">{getCausalVarLabel(key)}</span>
+                        <span className="text-white/40 font-mono">{key}</span>
                         <span className={value >= 70 ? 'text-[#E8E55E]' : value <= 30 ? 'text-red-400' : 'text-white/50'}>{value}</span>
                       </div>
-                      <div className="w-full h-[3px] bg-white/[0.04] rounded-full overflow-hidden"><div className={`h-full transition-all duration-700 ${value >= 70 ? 'bg-[#E8E55E]' : 'bg-white/60'}`} style={{ width: `${value}%` }} /></div>
+                      <div className="w-full h-[3px] bg-white/[0.04] rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-700 ${value >= 70 ? 'bg-[#E8E55E]' : value <= 30 ? 'bg-red-400' : 'bg-white/60'}`} style={{ width: `${value}%` }} />
+                      </div>
                     </div>
                   ))}
                 </div>
               </Card>
             </div>
 
-            {/* Right column */}
+            {/* Facts */}
             <div className="col-span-3 flex flex-col gap-6">
               <Card className="p-6">
-                <h3 className="text-sm font-medium mb-4 text-white/80">Key Figures</h3>
-                <div className="space-y-4">
-                  {persons.map((person) => (
-                    <div key={person.id} className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs ${person.status === 'dead' ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-white/40'}`}>{person.initials}</div>
-                      <div>
-                        <div className="text-sm font-medium text-white/70">{person.name}</div>
-                        <div className="text-[10px] text-white/25">{person.role} &bull; {person.status}</div>
+                <h3 className="text-sm font-medium mb-4 text-white/80">Facts</h3>
+                <div className="space-y-3">
+                  {factEntries.map(([id, fact]) => (
+                    <div key={id} className="p-2.5 rounded bg-white/[0.02] border border-white/[0.06]">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[9px] uppercase tracking-wider ${fact.type === 'hard' ? 'text-[#E8E55E]' : 'text-white/30'}`}>{fact.type}</span>
+                        <span className="text-[9px] text-white/20">{fact.confidence}%</span>
                       </div>
+                      <p className="text-[11px] text-white/50 leading-relaxed">{fact.statement}</p>
                     </div>
                   ))}
                 </div>
               </Card>
-              <Card className="p-6 flex-grow bg-white/[0.02] border-white/[0.04]">
-                <h3 className="text-sm font-medium mb-4 text-white/50">Intelligence</h3>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="p-2 border border-white/[0.06] rounded">
-                    <span className="text-xl font-light block mb-1 text-white/70">{causalVars.intelligence || 50}</span>
-                    <span className="text-[9px] text-white/20 uppercase">Intel Score</span>
-                  </div>
-                  <div className="p-2 border border-white/[0.06] rounded">
-                    <span className="text-xl font-light block mb-1 text-white/70">{causalVars.techLevel || 50}</span>
-                    <span className="text-[9px] text-white/20 uppercase">Tech Level</span>
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t border-white/[0.06]">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-white/30">Logistics</span>
-                    <span className={`text-xs ${(causalVars.logistics || 50) <= 40 ? 'text-red-400' : 'text-white/50'}`}>{causalVars.logistics || 50}%</span>
-                  </div>
-                </div>
-              </Card>
             </div>
+
           </div>
         </div>
       </div>
