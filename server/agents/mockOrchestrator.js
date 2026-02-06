@@ -30,6 +30,18 @@ export async function generateNarration(eventNode) {
   return `${title}. ${description} The world watches as events unfold that will define a generation.`;
 }
 
+export async function generateImagePrompt(eventNode) {
+  const { title, description, category } = eventNode.eventSpec;
+  const isAlt = eventNode.branchId !== "main";
+  const timeline = isAlt ? "alternate history" : "historical";
+  return `Photorealistic ${timeline} scene depicting ${title}. ${description}. Cinematic lighting, documentary photography style, 16:9 aspect ratio, dramatic atmosphere, ${category} event from ${eventNode.timestamp}.`;
+}
+
+export async function generateVideoPrompt(eventNode) {
+  const { title, description } = eventNode.eventSpec;
+  return `Historical scene of ${title}. ${description}. Camera slowly panning across the scene, dramatic lighting, documentary style.`;
+}
+
 export async function parseVoiceCommand(transcript) {
   const forkKeywords = ["what if", "imagine", "suppose", "instead", "had", "never", "alternate"];
   const lower = transcript.toLowerCase();

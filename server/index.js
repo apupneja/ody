@@ -13,7 +13,16 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", mode: process.env.ANTHROPIC_API_KEY ? "real" : "mock" });
+  res.json({
+    status: "ok",
+    mode: process.env.ANTHROPIC_API_KEY ? "real" : "mock",
+    services: {
+      claude: !!process.env.ANTHROPIC_API_KEY,
+      fal: !!process.env.FAL_KEY,
+      elevenlabs: !!process.env.ELEVENLABS_API_KEY,
+      odyssey: !!process.env.ODYSSEY_API_KEY,
+    },
+  });
 });
 
 app.use("/api/scenarios", scenariosRouter);

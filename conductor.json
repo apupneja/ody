@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "setup": "npm install",
+    "setup": "cp -f \"$(git rev-parse --git-common-dir)/../.env\" .env 2>/dev/null || true && npm install",
     "run": "export BACKEND_PORT=$(($CONDUCTOR_PORT + 1000)) && echo \"Frontend: http://localhost:$CONDUCTOR_PORT\" && echo \"Backend: http://localhost:$BACKEND_PORT\" && (PORT=$BACKEND_PORT node --watch server/index.js) & (BACKEND_PORT=$BACKEND_PORT npx vite --port $CONDUCTOR_PORT)"
   }
 }

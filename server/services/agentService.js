@@ -43,3 +43,23 @@ export async function parseVoiceCommand(transcript) {
     return await mock.parseVoiceCommand(transcript);
   }
 }
+
+export async function generateImagePrompt(eventNode) {
+  try {
+    return await orchestrator.generateImagePrompt(eventNode);
+  } catch (err) {
+    console.error("[AgentService] Image prompt failed, using mock:", err.message);
+    const mock = await import("../agents/mockOrchestrator.js");
+    return await mock.generateImagePrompt(eventNode);
+  }
+}
+
+export async function generateVideoPrompt(eventNode) {
+  try {
+    return await orchestrator.generateVideoPrompt(eventNode);
+  } catch (err) {
+    console.error("[AgentService] Video prompt failed, using mock:", err.message);
+    const mock = await import("../agents/mockOrchestrator.js");
+    return await mock.generateVideoPrompt(eventNode);
+  }
+}
