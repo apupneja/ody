@@ -34,10 +34,31 @@ const useStore = create((set, get) => ({
   narrationText: null,
   narrationLoading: false,
 
+  // Generation prompt (non-empty = custom scenario, empty = seed data)
+  userPrompt: '',
+
   // Config
   config: { timeHorizon: 'Past', length: '20 min', detail: 'Standard' },
 
+  setUserPrompt: (prompt) => set({ userPrompt: prompt }),
   setConfig: (key, value) => set((s) => ({ config: { ...s.config, [key]: value } })),
+
+  // Hydrate session from externally-generated data (used by GeneratingView SSE flow)
+  hydrateSession: ({ sessionId, scenario, timeline, branches }) => {
+    const firstNodeId = timeline?.[0]?.id ?? null;
+    set({
+      sessionId,
+      scenarioMeta: scenario,
+      timeline: timeline || [],
+      branches: branches || [],
+      activeBranchId: 'main',
+      selectedNodeId: firstNodeId,
+      loading: false,
+    });
+    if (firstNodeId) {
+      get().loadNodeDetail(firstNodeId);
+    }
+  },
 
   initScenario: async (params) => {
     set({ loading: true, error: null });

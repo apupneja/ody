@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import useStore from './store/useStore.js';
+import { streamGeneration } from './api/generate.js';
 
 /* ─── Shared Components ─── */
 
@@ -167,29 +168,15 @@ const LandingView = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [configOpen, setConfigOpen] = useState(false);
-  const { loading, error, initScenario, config, setConfig } = useStore();
-  const handleScenarioClick = async (scenario) => {
-    const ww2Slugs = ['pearl-harbor', 'hiroshima'];
-    if (ww2Slugs.includes(scenario.slug)) {
-      await initScenario({ scenarioType: 'ww2' });
-    } else {
-      await initScenario({
-        scenarioType: 'generated',
-        title: scenario.title,
-        subtitle: scenario.subtitle,
-        nodes: scenario.nodes,
-      });
-    }
-    navigate('/simulation');
+  const { loading, error, initScenario, config, setConfig, setUserPrompt } = useStore();
+  const handleScenarioClick = (scenario) => {
+    setUserPrompt(scenario.title); // generate with Claude for this scenario
+    navigate('/generating');
   };
 
-  const handleSubmit = async () => {
-    if (!query.trim()) return;
-    await initScenario({
-      scenarioType: 'generated',
-      description: query.trim(),
-    });
-    navigate('/simulation');
+  const handleSubmit = () => {
+    setUserPrompt(query.trim()); // custom prompt or empty = seed
+    navigate('/generating');
   };
 
   return (
@@ -1058,6 +1045,513 @@ const InspectorView = () => {
   );
 };
 
+/* ─── Generating View (dramatic seed data reveal) ─── */
+
+const GEN_FACTIONS = [
+  { code: 'GER', name: 'Nazi Germany', status: 'aggressive', leader: 'Hitler' },
+  { code: 'UK', name: 'United Kingdom', status: 'at-war', leader: 'Churchill' },
+  { code: 'FRA', name: 'France', status: 'at-war', leader: 'Daladier' },
+  { code: 'USSR', name: 'Soviet Union', status: 'neutral', leader: 'Stalin' },
+  { code: 'USA', name: 'United States', status: 'neutral', leader: 'Roosevelt' },
+  { code: 'JPN', name: 'Empire of Japan', status: 'aggressive', leader: 'Hirohito' },
+  { code: 'POL', name: 'Poland', status: 'invaded', leader: null },
+  { code: 'ITA', name: 'Fascist Italy', status: 'aggressive', leader: 'Mussolini' },
+];
+
+const GEN_PERSONS = [
+  { name: 'Adolf Hitler', role: 'Führer', nation: 'Germany' },
+  { name: 'Winston Churchill', role: 'Prime Minister', nation: 'United Kingdom' },
+  { name: 'Franklin D. Roosevelt', role: 'President', nation: 'United States' },
+  { name: 'Joseph Stalin', role: 'General Secretary', nation: 'Soviet Union' },
+  { name: 'Benito Mussolini', role: 'Il Duce', nation: 'Italy' },
+];
+
+const GEN_FACTS = [
+  { id: 'war-europe', text: 'Germany has invaded Poland, starting World War II', type: 'hard' },
+  { id: 'uk-fra-alliance', text: 'UK and France are allied against Germany', type: 'hard' },
+  { id: 'molotov-pact', text: 'Germany and USSR have a non-aggression pact', type: 'hard' },
+  { id: 'us-neutral', text: 'The United States maintains official neutrality', type: 'hard' },
+  { id: 'axis-forming', text: 'Germany, Italy, and Japan forming Axis alliance', type: 'soft' },
+  { id: 'blitzkrieg', text: 'Germany employs blitzkrieg rapid-assault tactics', type: 'hard' },
+  { id: 'atlantic', text: 'Atlantic trade routes vital for Allied supply', type: 'soft' },
+  { id: 'japan-china', text: 'Japan engaged in war with China since 1937', type: 'hard' },
+];
+
+const GEN_CAUSAL_VARS = [
+  { key: 'escalation', label: 'Escalation', value: 60 },
+  { key: 'logistics', label: 'Logistics', value: 50 },
+  { key: 'intelligence', label: 'Intelligence', value: 40 },
+  { key: 'morale', label: 'Morale', value: 65 },
+  { key: 'techLevel', label: 'Tech Level', value: 45 },
+];
+
+const GEN_EVENTS = [
+  { date: '1939.09.01', title: 'Invasion of Poland', cat: 'military' },
+  { date: '1940.06.22', title: 'Fall of France', cat: 'military' },
+  { date: '1940.09.15', title: 'Battle of Britain', cat: 'military' },
+  { date: '1941.06.22', title: 'Operation Barbarossa', cat: 'military' },
+  { date: '1941.12.07', title: 'Attack on Pearl Harbor', cat: 'military' },
+  { date: '1942.06.04', title: 'Battle of Midway', cat: 'military' },
+  { date: '1943.02.02', title: 'Battle of Stalingrad', cat: 'military' },
+  { date: '1944.06.06', title: 'D-Day Invasion', cat: 'military' },
+  { date: '1945.04.30', title: 'Fall of Berlin', cat: 'military' },
+  { date: '1945.08.15', title: 'V-J Day', cat: 'military' },
+];
+
+const GeneratingView = () => {
+  const navigate = useNavigate();
+  const { initScenario, hydrateSession, timeline, sessionId, userPrompt } = useStore();
+  const [phase, setPhase] = useState(0);
+  const [factions, setFactions] = useState([]);
+  const [persons, setPersons] = useState([]);
+  const [facts, setFacts] = useState([]);
+  const [causalVars, setCausalVars] = useState([]);
+  const [varsRevealed, setVarsRevealed] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [ready, setReady] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const [genError, setGenError] = useState(null);
+  const [totalCounts, setTotalCounts] = useState({ factions: 0, persons: 0, facts: 0, events: 0 });
+  const abortRef = useRef(null);
+
+  const isCustom = !!userPrompt;
+
+  // --- SEED DATA MODE: hardcoded animation ---
+  useEffect(() => {
+    if (isCustom) return;
+    initScenario();
+  }, [isCustom]);
+
+  useEffect(() => {
+    if (isCustom) return;
+
+    setTotalCounts({ factions: GEN_FACTIONS.length, persons: GEN_PERSONS.length, facts: GEN_FACTS.length, events: GEN_EVENTS.length });
+
+    const t = [];
+    const tick = (ms, fn) => t.push(setTimeout(fn, ms));
+
+    tick(400, () => { setPhase(1); setProgress(5); });
+    tick(1200, () => { setPhase(2); setProgress(10); });
+    GEN_FACTIONS.forEach((f, i) => {
+      tick(1500 + i * 220, () => {
+        setFactions(prev => [...prev, f]);
+        setProgress(10 + ((i + 1) / GEN_FACTIONS.length) * 20);
+      });
+    });
+    tick(3600, () => setPhase(3));
+    GEN_PERSONS.forEach((p, i) => {
+      tick(3800 + i * 180, () => {
+        setPersons(prev => [...prev, p]);
+        setProgress(30 + ((i + 1) / GEN_PERSONS.length) * 10);
+      });
+    });
+    tick(4900, () => { setPhase(4); setProgress(42); });
+    GEN_FACTS.forEach((f, i) => {
+      tick(5100 + i * 220, () => {
+        setFacts(prev => [...prev, f]);
+        setProgress(42 + ((i + 1) / GEN_FACTS.length) * 18);
+      });
+    });
+    tick(7100, () => { setPhase(5); setVarsRevealed(true); setCausalVars(GEN_CAUSAL_VARS); setProgress(65); });
+    tick(8100, () => setProgress(75));
+    tick(8400, () => { setPhase(6); setProgress(76); });
+    GEN_EVENTS.forEach((e, i) => {
+      tick(8600 + i * 180, () => {
+        setEvents(prev => [...prev, e]);
+        setProgress(76 + ((i + 1) / GEN_EVENTS.length) * 20);
+      });
+    });
+    tick(10800, () => { setProgress(100); setPhase(7); });
+    tick(11200, () => setFlash(true));
+    tick(11400, () => setFlash(false));
+    tick(11800, () => setReady(true));
+
+    return () => t.forEach(clearTimeout);
+  }, [isCustom]);
+
+  // --- CUSTOM MODE: Claude SSE streaming ---
+  useEffect(() => {
+    if (!isCustom) return;
+
+    setPhase(1);
+    setProgress(5);
+
+    const abort = streamGeneration(userPrompt, {
+      phase: (data) => {
+        setPhase(data.phase);
+        // Map phases to rough progress
+        const phaseProgress = { 1: 5, 2: 10, 3: 30, 4: 42, 5: 65, 6: 76, 7: 100 };
+        if (phaseProgress[data.phase]) setProgress(phaseProgress[data.phase]);
+        if (data.phase === 5) setVarsRevealed(true);
+      },
+      faction: (data) => {
+        setFactions(prev => {
+          const next = [...prev, data];
+          setTotalCounts(c => ({ ...c, factions: next.length }));
+          setProgress(p => Math.max(p, 10 + (next.length / 10) * 20));
+          return next;
+        });
+      },
+      person: (data) => {
+        setPersons(prev => {
+          const next = [...prev, data];
+          setTotalCounts(c => ({ ...c, persons: next.length }));
+          setProgress(p => Math.max(p, 30 + (next.length / 7) * 10));
+          return next;
+        });
+      },
+      fact: (data) => {
+        setFacts(prev => {
+          const next = [...prev, data];
+          setTotalCounts(c => ({ ...c, facts: next.length }));
+          setProgress(p => Math.max(p, 42 + (next.length / 10) * 18));
+          return next;
+        });
+      },
+      causalVar: (data) => {
+        setCausalVars(prev => [...prev, data]);
+      },
+      event: (data) => {
+        setEvents(prev => {
+          const next = [...prev, data];
+          setTotalCounts(c => ({ ...c, events: next.length }));
+          setProgress(p => Math.max(p, 76 + (next.length / 12) * 20));
+          return next;
+        });
+      },
+      complete: (data) => {
+        setProgress(100);
+        setPhase(7);
+        hydrateSession(data);
+        setTimeout(() => setFlash(true), 400);
+        setTimeout(() => setFlash(false), 600);
+        setTimeout(() => setReady(true), 1000);
+      },
+      error: (err) => {
+        setGenError(err.message);
+      },
+    });
+    abortRef.current = abort;
+
+    return () => { if (abortRef.current) abortRef.current(); };
+  }, [isCustom, userPrompt]);
+
+  // Navigate once ready + data loaded
+  useEffect(() => {
+    if (ready && sessionId && timeline.length > 0) {
+      navigate('/simulation', { replace: true });
+    }
+  }, [ready, sessionId, timeline]);
+
+  // For seed mode, use hardcoded totals; for custom mode, totals update dynamically
+  const displayCausalVars = causalVars.length > 0 ? causalVars : (isCustom ? [] : GEN_CAUSAL_VARS);
+  const factionTotal = isCustom ? totalCounts.factions : GEN_FACTIONS.length;
+  const personTotal = isCustom ? totalCounts.persons : GEN_PERSONS.length;
+  const factTotal = isCustom ? totalCounts.facts : GEN_FACTS.length;
+  const eventTotal = isCustom ? totalCounts.events : GEN_EVENTS.length;
+
+  const phaseLabels = [
+    '',
+    isCustom ? 'Generating world model with Claude' : 'Initializing world model',
+    'Instantiating factions',
+    'Identifying key figures',
+    'Building intelligence network',
+    'Calibrating causal system',
+    'Constructing timeline',
+    'Simulation ready',
+  ];
+
+  const statusColor = (s) => {
+    if (s === 'aggressive') return 'text-red-400';
+    if (s === 'at-war' || s === 'invaded') return 'text-orange-400';
+    if (s === 'neutral') return 'text-white/50';
+    return 'text-white/40';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black z-[100] overflow-hidden">
+      {/* Scan line effect */}
+      {phase >= 1 && phase < 7 && (
+        <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-[0.03]">
+          <div className="w-full h-[2px] bg-[#E8E55E]" style={{ animation: 'gen-scan-line 3s linear infinite' }} />
+        </div>
+      )}
+
+      {/* Flash overlay */}
+      {flash && <div className="absolute inset-0 bg-[#E8E55E]/10 z-50 pointer-events-none" />}
+
+      {/* Grid background */}
+      <div className="absolute inset-0 opacity-30" style={{
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+        backgroundSize: '40px 40px',
+      }} />
+
+      <div className="relative z-10 w-full h-full flex flex-col">
+        {/* Header */}
+        <div className="flex-none px-10 pt-8 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className={`transition-all duration-700 ${phase >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                <svg className={`w-8 h-8 ${phase < 7 ? 'gen-glow' : ''}`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="0" width="100" height="100" rx="22" fill="#0B0B0F" />
+                  <rect x="7" y="7" width="86" height="86" rx="20" fill="none" stroke="#3A3A45" strokeWidth="2" />
+                  <circle cx="50" cy="50" r="18" fill="none" stroke="#E8E55E" strokeWidth="8" />
+                </svg>
+              </div>
+              <div className={`transition-all duration-500 ${phase >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                <span className="text-sm font-semibold tracking-wide text-white/90 font-display">Ripple</span>
+                <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] ml-3 font-mono">World Model v1</span>
+              </div>
+            </div>
+            {phase >= 1 && (
+              <div className="flex items-center gap-3 gen-item-enter">
+                <div className={`w-2 h-2 rounded-full ${phase < 7 ? 'bg-[#E8E55E] gen-pulse' : 'bg-emerald-400'}`} />
+                <span className="text-xs font-mono text-white/40">{phaseLabels[phase]}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-grow overflow-y-auto px-10 pb-4">
+          <div className="max-w-[1200px] mx-auto">
+            {/* Three-column grid */}
+            <div className="grid grid-cols-12 gap-5 mt-4">
+
+              {/* LEFT COLUMN — Factions + Figures */}
+              <div className="col-span-4 space-y-4">
+                {/* Factions */}
+                {phase >= 2 && (
+                  <div className="gen-item-enter">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#E8E55E]/60">Factions</span>
+                      <div className="flex-grow h-[1px] bg-white/[0.06]" />
+                      <span className="text-[9px] font-mono text-white/20">{factions.length}/{factionTotal}</span>
+                    </div>
+                    <div className="space-y-[6px]">
+                      {factions.map((f, i) => (
+                        <div key={f.code} className="gen-item-enter flex items-center gap-3 bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2 group hover:border-white/[0.1] transition-colors" style={{ animationDelay: `${i * 30}ms` }}>
+                          <div className="w-8 h-8 rounded bg-white/[0.04] flex items-center justify-center text-[10px] font-mono text-white/30 flex-shrink-0 border border-white/[0.06]">
+                            {f.code}
+                          </div>
+                          <div className="flex-grow min-w-0">
+                            <div className="text-[13px] text-white/70 truncate">{f.name}</div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-mono ${statusColor(f.status)}`}>{f.status.toUpperCase()}</span>
+                              {f.leader && <span className="text-[10px] text-white/15">{f.leader}</span>}
+                            </div>
+                          </div>
+                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${f.status === 'aggressive' ? 'bg-red-400' : f.status === 'neutral' ? 'bg-white/20' : 'bg-orange-400'}`} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Key Figures */}
+                {phase >= 3 && (
+                  <div className="gen-item-enter">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#E8E55E]/60">Key Figures</span>
+                      <div className="flex-grow h-[1px] bg-white/[0.06]" />
+                      <span className="text-[9px] font-mono text-white/20">{persons.length}/{personTotal}</span>
+                    </div>
+                    <div className="space-y-[6px]">
+                      {persons.map((p, i) => (
+                        <div key={p.name} className="gen-item-enter flex items-center gap-3 bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2" style={{ animationDelay: `${i * 30}ms` }}>
+                          <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-[10px] font-mono text-white/30 flex-shrink-0">
+                            {p.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                          </div>
+                          <div className="flex-grow min-w-0">
+                            <div className="text-[13px] text-white/70">{p.name}</div>
+                            <div className="text-[10px] text-white/25">{p.role} — {p.nation}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* CENTER COLUMN — Timeline */}
+              <div className="col-span-4">
+                {phase >= 6 && (
+                  <div className="gen-item-enter">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#E8E55E]/60">Timeline</span>
+                      <div className="flex-grow h-[1px] bg-white/[0.06]" />
+                      <span className="text-[9px] font-mono text-white/20">{events.length}/{eventTotal}</span>
+                    </div>
+                    <div className="relative">
+                      {/* Vertical line */}
+                      <div className="absolute left-[7px] top-3 bottom-0 w-[1px] bg-white/[0.06]" />
+                      <div className="space-y-[2px]">
+                        {events.map((e, i) => (
+                          <div key={e.date} className="gen-item-enter flex items-start gap-3 pl-0 py-1.5 relative" style={{ animationDelay: `${i * 30}ms` }}>
+                            <div className={`w-[15px] h-[15px] rounded-full flex-shrink-0 z-10 flex items-center justify-center mt-0.5 ${i === events.length - 1 ? 'bg-[#E8E55E]' : 'bg-white/10 border border-white/[0.1]'}`} style={i === events.length - 1 ? { boxShadow: '0 0 10px rgba(232,229,94,0.4)' } : {}}>
+                              {i === events.length - 1 && <div className="w-[5px] h-[5px] rounded-full bg-black" />}
+                            </div>
+                            <div className="flex-grow min-w-0 bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-[10px] font-mono text-[#E8E55E]/50">{e.date}</span>
+                                <span className="text-[9px] font-mono text-white/15 uppercase">{e.cat}</span>
+                              </div>
+                              <div className="text-[13px] text-white/70">{e.title}</div>
+                            </div>
+                          </div>
+                        ))}
+                        {phase === 6 && (isCustom || events.length < GEN_EVENTS.length) && events.length < eventTotal && (
+                          <div className="flex items-center gap-3 pl-0 py-1.5">
+                            <div className="w-[15px] h-[15px] rounded-full bg-white/[0.04] border border-white/[0.08] flex-shrink-0 z-10 flex items-center justify-center">
+                              <div className="w-[5px] h-[5px] rounded-full bg-[#E8E55E] gen-pulse" />
+                            </div>
+                            <span className="text-[11px] text-white/20 font-mono">constructing<span className="gen-cursor">_</span></span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Centered status for early phases */}
+                {phase >= 1 && phase < 6 && !genError && (
+                  <div className="h-full flex flex-col items-center justify-center">
+                    <div className="gen-item-enter flex flex-col items-center">
+                      <svg className="w-20 h-20 mb-6 gen-glow rounded-2xl" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="100" height="100" rx="22" fill="#0B0B0F" />
+                        <rect x="7" y="7" width="86" height="86" rx="20" fill="none" stroke="#3A3A45" strokeWidth="2" />
+                        <circle cx="50" cy="50" r="18" fill="none" stroke="#E8E55E" strokeWidth="8" strokeDasharray="113.097" strokeDashoffset={113.097 * (1 - progress / 100)} className="transition-all duration-500" />
+                      </svg>
+                      <div className="text-center">
+                        <div className="text-3xl font-light text-white/90 mb-2 font-display">{Math.round(progress)}%</div>
+                        <div className="text-xs text-white/30 font-mono uppercase tracking-[0.15em]">{phaseLabels[phase]}<span className="gen-cursor">_</span></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Error state */}
+                {genError && (
+                  <div className="h-full flex flex-col items-center justify-center">
+                    <div className="gen-item-enter flex flex-col items-center max-w-sm text-center">
+                      <div className="w-16 h-16 rounded-full border-2 border-red-400/50 flex items-center justify-center mb-4">
+                        <svg className="w-7 h-7 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+                      </div>
+                      <span className="text-sm text-red-400/80 mb-2">Generation failed</span>
+                      <p className="text-xs text-white/30 mb-4">{genError}</p>
+                      <button onClick={() => navigate('/')} className="px-4 py-2 border border-white/10 rounded-full text-xs text-white/50 hover:text-white/80 hover:border-white/30 transition-all">
+                        Back to scenarios
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ready state overlay */}
+                {phase === 7 && (
+                  <div className="mt-8 gen-item-enter flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-full border-2 border-emerald-400/50 flex items-center justify-center mb-4" style={{ boxShadow: '0 0 30px rgba(52,211,153,0.2)' }}>
+                      <svg className="w-7 h-7 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                    </div>
+                    <span className="text-sm font-mono text-emerald-400/70 uppercase tracking-[0.2em]">Entering simulation</span>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT COLUMN — Causal Vars + Facts */}
+              <div className="col-span-4 space-y-4">
+                {/* Causal Variables */}
+                {phase >= 5 && (
+                  <div className="gen-item-enter">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#E8E55E]/60">Causal Variables</span>
+                      <div className="flex-grow h-[1px] bg-white/[0.06]" />
+                    </div>
+                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 space-y-4">
+                      {displayCausalVars.map((v, i) => (
+                        <div key={v.key} className="gen-item-enter" style={{ animationDelay: `${i * 100}ms` }}>
+                          <div className="flex justify-between text-[11px] mb-1.5">
+                            <span className="text-white/40 font-mono uppercase tracking-wider">{v.label}</span>
+                            <span className={`font-mono ${v.value >= 60 ? 'text-[#E8E55E]' : v.value <= 40 ? 'text-red-400/70' : 'text-white/50'}`}>
+                              {varsRevealed ? v.value : '—'}
+                            </span>
+                          </div>
+                          <div className="w-full h-[4px] bg-white/[0.04] rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full gen-gauge-fill ${v.value >= 60 ? 'bg-[#E8E55E]/80' : v.value <= 40 ? 'bg-red-400/60' : 'bg-white/40'}`}
+                              style={{ width: varsRevealed ? `${v.value}%` : '0%', animationDelay: `${i * 150}ms`, animationDuration: '1s' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Intelligence Briefing / Facts */}
+                {phase >= 4 && (
+                  <div className="gen-item-enter">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-[#E8E55E]/60">Intelligence Briefing</span>
+                      <div className="flex-grow h-[1px] bg-white/[0.06]" />
+                      <span className="text-[9px] font-mono text-white/20">{facts.length}/{factTotal}</span>
+                    </div>
+                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg overflow-hidden">
+                      <div className="p-3 space-y-[4px] font-mono text-[11px] max-h-[280px] overflow-y-auto">
+                        {facts.map((f, i) => (
+                          <div key={f.id} className="gen-item-enter flex gap-2 leading-relaxed" style={{ animationDelay: `${i * 20}ms` }}>
+                            <span className="text-[#E8E55E]/40 flex-shrink-0">&gt;</span>
+                            <span className="text-white/50">{f.text}</span>
+                            <span className={`flex-shrink-0 text-[9px] px-1 py-0 rounded ${f.type === 'hard' ? 'text-[#E8E55E]/40 bg-[#E8E55E]/[0.06]' : 'text-white/20 bg-white/[0.03]'}`}>
+                              {f.type}
+                            </span>
+                          </div>
+                        ))}
+                        {phase === 4 && facts.length < factTotal && (
+                          <div className="flex gap-2">
+                            <span className="text-[#E8E55E]/40">&gt;</span>
+                            <span className="text-white/20 gen-cursor">_</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom progress bar */}
+        <div className="flex-none px-10 pb-6 pt-2">
+          <div className="max-w-[1200px] mx-auto">
+            <div className="flex items-center gap-4">
+              <div className="flex-grow h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#E8E55E]/60 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-mono text-white/25 w-10 text-right">{Math.round(progress)}%</span>
+            </div>
+            <div className="flex justify-between mt-2">
+              <span className="text-[9px] font-mono text-white/15 uppercase tracking-[0.15em]">
+                {phase >= 7 ? 'World model complete' : isCustom ? 'Claude is building world model' : 'Building world model'}
+              </span>
+              <div className="flex gap-4 text-[9px] font-mono text-white/15">
+                <span>{factions.length} factions</span>
+                <span>{persons.length} figures</span>
+                <span>{facts.length} facts</span>
+                <span>{events.length} events</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Scenario View (initializes session then redirects) ─── */
 
 const ScenarioView = () => {
@@ -1129,6 +1623,7 @@ const App = () => {
     <Router basename="/">
       <Routes>
         <Route path="/" element={<LandingView />} />
+        <Route path="/generating" element={<GeneratingView />} />
         <Route path="/scenario/:slug" element={<ScenarioView />} />
         <Route path="/simulation" element={<TimelineView />} />
         <Route path="/detail" element={<DetailView />} />
