@@ -20,6 +20,7 @@ router.post("/", async (req, res) => {
     graph: scenario.graph,
     renderPacks: scenario.renderPacks,
     metadata: { title: scenario.title, description: scenario.description },
+    precomputedBranches: scenario.precomputedBranches,
   });
 
   const timeline = scenario.graph.getTimeline("main");

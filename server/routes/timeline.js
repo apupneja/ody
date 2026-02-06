@@ -16,6 +16,28 @@ router.get("/", async (req, res) => {
   res.json({ timeline, branches });
 });
 
+router.get("/nodes/:nodeId/suggestions", async (req, res) => {
+  const session = sessionStore.get(req.params.sessionId);
+  if (!session) return res.status(404).json({ error: "Session not found" });
+
+  const node = session.graph.getNode(req.params.nodeId);
+  if (!node) return res.status(404).json({ error: "Node not found" });
+
+  const precomputed = (session.precomputedBranches || []).find(
+    (pb) => pb.eventNodeId === req.params.nodeId
+  );
+
+  const suggestions = (precomputed?.branches || []).map((branch, idx) => ({
+    id: idx,
+    label: branch.forkEventSpec?.title || branch.forkDescription,
+    description: branch.forkEventSpec?.description || '',
+    probability: `${branch.branchPriors?.plausibility || 50}%`,
+    forkDescription: branch.forkDescription,
+  }));
+
+  res.json({ suggestions });
+});
+
 router.get("/nodes/:nodeId", async (req, res) => {
   const session = sessionStore.get(req.params.sessionId);
   if (!session) return res.status(404).json({ error: "Session not found" });
