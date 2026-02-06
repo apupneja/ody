@@ -1,3 +1,4 @@
+import { WorldState } from "../../models/WorldState.js";
 import { buildMainlineEvents } from "./mainlineEvents.js";
 import { polandBranches } from "./branches/branch-poland.js";
 import { franceBranches } from "./branches/branch-france.js";
@@ -65,5 +66,49 @@ export function buildWW2Scenario() {
     precomputedBranches,
     title: "World War II",
     description: "The Second World War, 1939-1945. Ten pivotal events that shaped the modern world.",
+  };
+}
+
+export function buildGeneratedScenario(agentOutput) {
+  const graph = new StoryGraph();
+  const renderPacks = new Map();
+
+  let currentState = new WorldState({
+    entities: agentOutput.initialState.entities,
+    facts: agentOutput.initialState.facts,
+    causalVars: agentOutput.initialState.causalVars,
+  });
+
+  agentOutput.mainlineEvents.forEach((eventData, i) => {
+    if (eventData.deltas) {
+      currentState = currentState.applyDelta(eventData.deltas);
+    }
+
+    const node = new EventNode({
+      id: `main-${i}`,
+      parentId: i > 0 ? `main-${i - 1}` : null,
+      branchId: "main",
+      timestamp: eventData.timestamp,
+      eventSpec: eventData.eventSpec,
+      deltas: eventData.deltas,
+      worldState: currentState,
+      isUserFork: false,
+    });
+    graph.addNode(node);
+
+    const rp = new RenderPack({
+      eventNodeId: node.id,
+      sceneBible: `[${eventData.eventSpec.category.toUpperCase()}] ${eventData.eventSpec.title}\n\n${eventData.eventSpec.description}`,
+    });
+    node.renderPackId = rp.id;
+    renderPacks.set(rp.id, rp);
+  });
+
+  return {
+    graph,
+    renderPacks,
+    precomputedBranches: [],
+    title: agentOutput.title,
+    description: agentOutput.description,
   };
 }

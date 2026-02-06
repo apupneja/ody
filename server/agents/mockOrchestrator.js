@@ -202,6 +202,64 @@ function generateTemplateContinuations(forkDescription, worldState, mainlineEven
   ];
 }
 
+export async function generateScenario(params) {
+  const { title, description, subtitle, nodes } = params;
+
+  const scenarioTitle = title || (description ? description.slice(0, 60) : "Custom Scenario");
+  const scenarioDescription = description || `A simulation exploring: ${scenarioTitle}`;
+
+  const yearMatch = subtitle?.match(/(\d{4})/);
+  const baseYear = yearMatch ? parseInt(yearMatch[1]) : 2000;
+
+  const initialState = {
+    entities: {
+      "faction-a": { type: "faction", name: "Primary Faction", status: "active", properties: { role: "protagonist", strength: "strong" } },
+      "faction-b": { type: "faction", name: "Secondary Faction", status: "active", properties: { role: "antagonist", strength: "strong" } },
+      "faction-c": { type: "faction", name: "Neutral Party", status: "neutral", properties: { role: "observer", strength: "moderate" } },
+      "leader-a": { type: "person", name: "Leader A", status: "alive", properties: { role: "head-of-state", faction: "faction-a" } },
+      "leader-b": { type: "person", name: "Leader B", status: "alive", properties: { role: "head-of-state", faction: "faction-b" } },
+    },
+    facts: {
+      "initial-situation": { type: "hard", statement: scenarioDescription, confidence: 100 },
+      "tensions-rising": { type: "soft", statement: "Tensions are escalating between key parties", confidence: 85 },
+    },
+    causalVars: { escalation: 55, logistics: 50, intelligence: 45, morale: 60, techLevel: 50 },
+  };
+
+  const eventSources = nodes && nodes.length > 0
+    ? nodes
+    : ["Crisis begins", "Tensions escalate", "Key decision point", "Turning point", "Consequences unfold", "Resolution"];
+
+  const mainlineEvents = eventSources.map((eventTitle, i) => {
+    const monthOffset = Math.floor((i / eventSources.length) * 12);
+    const day = Math.min(28, (i + 1) * 4);
+    const timestamp = `${baseYear}-${String(monthOffset + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+    return {
+      eventSpec: {
+        title: typeof eventTitle === "string" ? eventTitle.slice(0, 60) : `Event ${i + 1}`,
+        description: `${eventTitle}. The situation continues to evolve as key actors respond to changing circumstances.`,
+        category: i === 0 ? "political" : i === eventSources.length - 1 ? "diplomatic" : "political",
+      },
+      timestamp,
+      deltas: i === 0
+        ? null
+        : {
+            entityChanges: [],
+            factChanges: [
+              { factId: `event-${i}`, oldValue: null, newValue: { type: "soft", statement: eventTitle, confidence: 80 } },
+            ],
+            causalVarChanges: [
+              { varName: "escalation", delta: i < eventSources.length / 2 ? 5 : -5 },
+              { varName: "morale", delta: i < eventSources.length / 2 ? -3 : 3 },
+            ],
+          },
+    };
+  });
+
+  return { title: scenarioTitle, description: scenarioDescription, initialState, mainlineEvents };
+}
+
 function findMentionedFaction(lower, worldState) {
   const factionMap = {
     germany: ["germany", "german", "nazi", "reich", "berlin"],

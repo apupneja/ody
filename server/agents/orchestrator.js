@@ -1,5 +1,5 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { AGENT_DEFINITIONS, FORK_RESULT_SCHEMA, VOICE_COMMAND_SCHEMA } from "./agentDefinitions.js";
+import { AGENT_DEFINITIONS, FORK_RESULT_SCHEMA, VOICE_COMMAND_SCHEMA, SCENARIO_RESULT_SCHEMA } from "./agentDefinitions.js";
 
 export async function executeFork(worldState, forkDescription, mainlineEvents) {
   const prompt = `You are the orchestrator for an alternate-history simulation. A user has requested a fork at a point in the timeline.
@@ -170,4 +170,63 @@ Return JSON with: intent ("fork", "navigate", or "unknown"), description (cleane
   }
 
   return result ?? { intent: "unknown", description: transcript, targetNodeId: null };
+}
+
+export async function generateScenario(params) {
+  const { title, description, subtitle, nodes } = params;
+
+  let contextBlock = "";
+  if (title) contextBlock += `Scenario title: ${title}\n`;
+  if (subtitle) contextBlock += `Time period: ${subtitle}\n`;
+  if (description) contextBlock += `User description: ${description}\n`;
+  if (nodes && nodes.length > 0) {
+    contextBlock += `Event summaries (use these as a skeleton for the mainline events):\n`;
+    nodes.forEach((node, i) => {
+      contextBlock += `  ${i + 1}. ${node}\n`;
+    });
+  }
+
+  const prompt = `You are the orchestrator for an alternate-history simulation platform. Generate a complete scenario from scratch.
+
+${contextBlock}
+
+Use the scenario-generator agent to produce the full scenario data including:
+1. A title and description
+2. An initial WorldState with entities (factions + key persons), facts, and causal variables
+3. 6-10 mainline events in chronological order, each with eventSpec, timestamp, and deltas
+
+${
+  nodes && nodes.length > 0
+    ? `IMPORTANT: The user provided ${nodes.length} event summaries. Use these as the basis for your mainline events. You may expand, refine, or add additional events, but preserve the narrative structure implied by these summaries.`
+    : `Generate events that tell a coherent narrative arc from the beginning of the crisis/event through its climax and resolution.`
+}
+
+Return the complete result as JSON.`;
+
+  let result = null;
+  for await (const message of query({
+    prompt,
+    options: {
+      model: "sonnet",
+      allowedTools: ["Read", "Grep", "Task"],
+      agents: { "scenario-generator": AGENT_DEFINITIONS["scenario-generator"] },
+      permissionMode: "bypassPermissions",
+      allowDangerouslySkipPermissions: true,
+      outputFormat: { type: "json_schema", schema: SCENARIO_RESULT_SCHEMA },
+      maxTurns: 15,
+      maxBudgetUsd: 1.5,
+    },
+  })) {
+    if (message.type === "result") {
+      if (message.subtype === "success") {
+        result = message.structured_output ?? JSON.parse(message.result);
+      } else {
+        const errors = message.errors?.join(", ") || message.subtype;
+        throw new Error(`Scenario generation failed: ${errors}`);
+      }
+    }
+  }
+
+  if (!result) throw new Error("No result from scenario generation");
+  return result;
 }
