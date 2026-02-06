@@ -1,7 +1,40 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Souvenir';
+  src: url('/souvenir/Souvenir.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Souvenir';
+  src: url('/souvenir/SouvenirB.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Souvenir';
+  src: url('/souvenir/SouvenirI.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Souvenir';
+  src: url('/souvenir/SouvenirBI.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @theme {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: 'Public Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Souvenir', Georgia, 'Times New Roman', serif;
   --color-bg: #000000;
   --color-bg-card: #0a0a0a;
   --color-bg-elevated: #111111;
@@ -16,11 +49,16 @@
   outline: none;
 }
 
+h1, h2, h3, h4, h5, h6,
+button, nav, .font-display {
+  font-family: 'Souvenir', Georgia, 'Times New Roman', serif;
+}
+
 body {
   margin: 0;
   background-color: #000000;
   color: #ffffff;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
 

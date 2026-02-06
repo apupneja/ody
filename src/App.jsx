@@ -183,28 +183,23 @@ const LandingView = () => {
       {/* Header */}
       <header className="flex justify-between items-center px-8 py-5 border-b border-white/[0.04] sticky top-0 bg-black/80 backdrop-blur-md z-50">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl border border-white/[0.08] bg-white/[0.03] flex items-center justify-center">
-            <svg className="w-4 h-4 text-[#E8E55E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-            </svg>
-          </div>
-          <span className="text-sm font-semibold tracking-wide text-white/90">Ripple</span>
+          <svg className="w-8 h-8" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="100" height="100" rx="22" fill="#0B0B0F" />
+            <rect x="7" y="7" width="86" height="86" rx="20" fill="none" stroke="#3A3A45" strokeWidth="2" />
+            <circle cx="50" cy="50" r="18" fill="none" stroke="#FFFFFF" strokeWidth="8" />
+          </svg>
+          <span className="text-sm font-semibold tracking-wide text-white/90 font-display">Ripple</span>
         </div>
       </header>
 
       {/* Hero */}
-      <div className="flex flex-col items-center pt-20 pb-12 px-8">
-        <div className="mb-8 relative">
-          <div className="w-14 h-14 rounded-2xl border border-white/[0.08] bg-white/[0.02] flex items-center justify-center">
-            <svg className="w-7 h-7 text-[#E8E55E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#E8E55E] rounded-full" style={{ boxShadow: '0 0 8px rgba(232, 229, 94, 0.4)' }} />
+      <div className="flex flex-col items-center pt-20 pb-0 px-8">
+        <div className="mb-8">
+          <svg className="w-14 h-14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="100" height="100" rx="22" fill="#0B0B0F" />
+            <rect x="7" y="7" width="86" height="86" rx="20" fill="none" stroke="#3A3A45" strokeWidth="2" />
+            <circle cx="50" cy="50" r="18" fill="none" stroke="#FFFFFF" strokeWidth="8" />
+          </svg>
         </div>
 
         <h1 className="text-[32px] font-light text-white/90 mb-16 tracking-tight text-center">
@@ -317,10 +312,19 @@ const LandingView = () => {
       </div>
 
       {/* Flow text */}
-      <div className="flex flex-col items-center py-1 text-sm text-white/40 gap-2">
-        <span className="italic">Ripple turns this...</span>
-        <section className="w-full h-10" />
-        <span className="italic pl-50">...into simulations like these</span>
+      <div className="flex justify-between max-w-[25rem] py-2 mx-auto">
+        <div className="w-fit flex flex-col items-center">
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="38" fill="none" viewBox="0 0 12 38">
+            <path fill="rgba(255,255,255,0.3)" d="M7.9 27.74a41 41 0 0 0 3.2 7.61c.58 1.07-.37 2.67-.96 1.6a44 44 0 0 1-3.2-7.47q.46-.88.96-1.74M4.7.4c1.59-1.42 2.4 1.27 3.04 3.25.88 2.77 1.45 5.74 2.1 8.68.29 1.37-1.01 1.93-1.3.58-.5-2.25-.93-4.53-1.54-6.7a55 55 0 0 0-1.09-3.38A59 59 0 0 0 7.9 27.74q-.5.86-.96 1.74A62 62 0 0 1 4.4 4.11c-1.58 3.67-2.47 8.3-3.08 12.64-.2 1.43-1.5.85-1.3-.57a67 67 0 0 1 1.87-9.14C2.52 4.84 3.35 1.62 4.7.4" />
+          </svg>
+          <span className="font-display text-white/100 pb-[38px]">Ripple turns this...</span>
+        </div>
+        <div className="w-fit flex flex-col items-center">
+          <span className="font-display text-white/100 pt-[38px]">...into simulations like these</span>
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="38" fill="none" viewBox="0 0 12 38" className="rotate-180">
+            <path fill="rgba(255,255,255,0.3)" d="M7.9 27.74a41 41 0 0 0 3.2 7.61c.58 1.07-.37 2.67-.96 1.6a44 44 0 0 1-3.2-7.47q.46-.88.96-1.74M4.7.4c1.59-1.42 2.4 1.27 3.04 3.25.88 2.77 1.45 5.74 2.1 8.68.29 1.37-1.01 1.93-1.3.58-.5-2.25-.93-4.53-1.54-6.7a55 55 0 0 0-1.09-3.38A59 59 0 0 0 7.9 27.74q-.5.86-.96 1.74A62 62 0 0 1 4.4 4.11c-1.58 3.67-2.47 8.3-3.08 12.64-.2 1.43-1.5.85-1.3-.57a67 67 0 0 1 1.87-9.14C2.52 4.84 3.35 1.62 4.7.4" />
+          </svg>
+        </div>
       </div>
 
       {/* Scenario cards grid */}
@@ -367,10 +371,10 @@ const LandingView = () => {
           </button>
         </div>
         <div className="flex justify-center pb-12">
-          <svg className="w-8 h-8 text-white/[0.06]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            <line x1="2" y1="12" x2="22" y2="12" />
+          <svg className="w-8 h-8 opacity-[0.06]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="100" height="100" rx="22" fill="#0B0B0F" />
+            <rect x="7" y="7" width="86" height="86" rx="20" fill="none" stroke="#3A3A45" strokeWidth="2" />
+            <circle cx="50" cy="50" r="18" fill="none" stroke="#FFFFFF" strokeWidth="8" />
           </svg>
         </div>
       </div>
@@ -389,15 +393,13 @@ const SimHeader = () => {
   return (
     <header className="flex-none flex justify-between items-center px-10 py-5 border-b border-white/[0.06] bg-black/90 backdrop-blur-sm z-50">
       <button onClick={() => navigate('/')} className="flex items-center gap-3 group">
-        <div className="w-8 h-8 rounded-xl border border-white/[0.08] bg-white/[0.03] flex items-center justify-center group-hover:border-white/15 transition-colors">
-          <svg className="w-3.5 h-3.5 text-[#E8E55E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            <line x1="2" y1="12" x2="22" y2="12" />
-          </svg>
-        </div>
+        <svg className="w-7 h-7 group-hover:opacity-90 transition-opacity" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="100" height="100" rx="22" fill="#0B0B0F" />
+          <rect x="7" y="7" width="86" height="86" rx="20" fill="none" stroke="#3A3A45" strokeWidth="2" />
+          <circle cx="50" cy="50" r="18" fill="none" stroke="#FFFFFF" strokeWidth="8" />
+        </svg>
         <div className="flex flex-col">
-          <span className="text-sm font-semibold tracking-wide text-white/90">Ripple</span>
+          <span className="text-sm font-semibold tracking-wide text-white/90 font-display">Ripple</span>
         </div>
       </button>
       <div className="flex items-center gap-3">
@@ -1077,7 +1079,7 @@ const ScenarioView = () => {
 const App = () => {
   useEffect(() => {
     const fontLink = document.createElement('link');
-    fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap';
     fontLink.rel = 'stylesheet';
     document.head.appendChild(fontLink);
     return () => document.head.removeChild(fontLink);
