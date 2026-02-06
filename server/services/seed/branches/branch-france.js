@@ -20,6 +20,8 @@ export const franceBranches = [
         { variable: "westernFrontStalemate", delta: 50 },
       ],
     },
+    explanation:
+      "The German breakthrough at Sedan was a near-run thing. French reserves were available but slow to deploy, and Guderian's crossing succeeded partly through audacity and French command paralysis. Had French intelligence acted on early warnings of the Ardennes thrust, even a few hours' head start could have turned Sedan into a killing ground.",
     forkEventSpec: {
       title: "The Meuse Holds",
       description:
@@ -102,6 +104,8 @@ export const franceBranches = [
         { variable: "americanInterventionLikelihood", delta: -30 },
       ],
     },
+    explanation:
+      "In late May 1940, the British War Cabinet genuinely debated seeking peace terms. Halifax argued for negotiation through Mussolini; Churchill narrowly won the argument to fight on. Had Halifax prevailed — or had Dunkirk gone worse — Britain might have left the war, fundamentally altering the global balance of power.",
     forkEventSpec: {
       title: "The Halifax Armistice",
       description:
@@ -185,6 +189,8 @@ export const franceBranches = [
         { variable: "freeFrenchLegitimacy", delta: 35 },
       ],
     },
+    explanation:
+      "The fate of the French fleet was one of the great anxieties of 1940. Churchill ordered the attack at Mers-el-Kébir because he couldn't risk it falling to Germany. Darlan was a pragmatist who ultimately sided with the Allies in 1942. Had he acted earlier, the Royal Navy would have gained a powerful ally and avoided one of the war's most tragic friendly-fire incidents.",
     forkEventSpec: {
       title: "Darlan's Defection",
       description:

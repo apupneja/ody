@@ -15,6 +15,14 @@ router.post("/", async (req, res) => {
   const node = session.graph.getNode(nodeId);
   if (!node) return res.status(404).json({ error: "Node not found" });
 
+  // Return pre-generated content if available
+  if (node.renderPackId) {
+    const existingRp = session.renderPacks.get(node.renderPackId);
+    if (existingRp?.narrationText) {
+      return res.json({ narrationText: existingRp.narrationText, audioUrl: existingRp.audioUrl });
+    }
+  }
+
   const narrationText = await agentService.generateNarration(node);
   const audioUrl = await generateSpeech(narrationText);
 

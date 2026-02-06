@@ -20,6 +20,8 @@ export const pearlHarborBranches = [
         { variable: "pacificFleetIntegrity", delta: 40 },
       ],
     },
+    explanation:
+      "Yamamoto's Pearl Harbor plan was controversial within the Japanese Navy. Many admirals considered it recklessly risky and preferred the safer Southern Strategy alone. Without Pearl Harbor's shock, Roosevelt would have struggled to unite a deeply isolationist America for war over distant European colonies in Southeast Asia.",
     forkEventSpec: {
       title: "The Attack That Never Came",
       description:
@@ -101,6 +103,8 @@ export const pearlHarborBranches = [
         { variable: "pacificWarTimeline", delta: 30 },
       ],
     },
+    explanation:
+      "Admiral Nagumo's decision not to launch a third wave is one of the war's great what-ifs. The fuel tank farms at Pearl Harbor held 4.5 million barrels — enough to supply the Pacific Fleet for months. Destroying them would have forced a retreat to the West Coast. The carriers Enterprise and Lexington were at sea only by luck; had they been in port, the Pacific war would have been unrecognizable.",
     forkEventSpec: {
       title: "Total Destruction at Pearl Harbor",
       description:
@@ -183,6 +187,8 @@ export const pearlHarborBranches = [
         { variable: "axisCoordination", delta: 30 },
       ],
     },
+    explanation:
+      "Japan's military was split between 'Strike North' (attack the USSR) and 'Strike South' (seize Southeast Asian resources) factions. The Soviets only learned Japan would go south through spy Richard Sorge, allowing them to transfer Siberian divisions to defend Moscow. A northern strike would have denied Stalin those reserves at the most critical moment of the war.",
     forkEventSpec: {
       title: "The Northern Strike",
       description:

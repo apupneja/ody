@@ -33,6 +33,7 @@ router.get("/nodes/:nodeId/suggestions", async (req, res) => {
     description: branch.forkEventSpec?.description || '',
     probability: `${branch.branchPriors?.plausibility || 50}%`,
     forkDescription: branch.forkDescription,
+    explanation: branch.explanation || null,
   }));
 
   res.json({ suggestions });

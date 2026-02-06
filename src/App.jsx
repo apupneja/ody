@@ -42,18 +42,17 @@ const Spinner = ({ className = '' }) => (
 
 const scenarios = [
   {
-    slug: 'pearl-harbor',
+    slug: 'ww2',
     image: 'https://images.unsplash.com/photo-1580086319619-3ed498161c77?q=80&w=600&auto=format&fit=crop',
-    title: 'Pearl Harbor — The Decision Room',
-    subtitle: 'December 7, 1941',
-    startNode: 4,
+    title: 'World War II — Five Turning Points',
+    subtitle: '1939–1945',
+    startNode: 0,
     nodes: [
-      'Japanese fleet crosses the Pacific undetected',
-      'First wave strikes Battleship Row at 07:48',
-      'USS Arizona explodes, 1,177 crew lost',
-      'FDR convenes emergency war cabinet',
-      '"A date which will live in infamy" speech drafted',
-      'Congress declares war — one dissenting vote',
+      'Germany launches blitzkrieg invasion of Poland',
+      'France falls — Axis dominance across Western Europe',
+      'Pearl Harbor brings America into the war',
+      'D-Day — Allied forces storm the beaches of Normandy',
+      'Atomic bombs end the war — V-J Day',
     ],
   },
   {
@@ -475,6 +474,7 @@ const BranchPanel = ({ nodeId }) => {
   const { suggestions, suggestionsLoading, loadSuggestions, executeFork, forkLoading } = useStore();
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [customInput, setCustomInput] = useState('');
+  const [expandedInfo, setExpandedInfo] = useState(null);
 
   useEffect(() => {
     if (nodeId) loadSuggestions(nodeId);
@@ -497,19 +497,35 @@ const BranchPanel = ({ nodeId }) => {
       ) : (
         <div className="space-y-2">
           {branchOptions.map((opt) => (
-            <button
-              key={opt.id}
-              className={`w-full text-left p-3 rounded-xl transition-all text-xs leading-snug flex justify-between items-start gap-3 ${selectedBranch === opt.id ? 'bg-black/20 ring-1 ring-black/20' : 'bg-black/[0.06] hover:bg-black/12'}`}
-              onClick={() => { setSelectedBranch(selectedBranch === opt.id ? null : opt.id); setCustomInput(''); }}
-            >
-              <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${selectedBranch === opt.id ? 'border-black bg-black' : 'border-black/30'}`}>
-                  {selectedBranch === opt.id && <div className="w-1.5 h-1.5 rounded-full bg-[#E8E55E]" />}
+            <div key={opt.id}>
+              <button
+                className={`w-full text-left p-3 rounded-xl transition-all text-xs leading-snug flex justify-between items-start gap-3 ${selectedBranch === opt.id ? 'bg-black/20 ring-1 ring-black/20' : 'bg-black/[0.06] hover:bg-black/12'}`}
+                onClick={() => { setSelectedBranch(selectedBranch === opt.id ? null : opt.id); setCustomInput(''); }}
+              >
+                <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${selectedBranch === opt.id ? 'border-black bg-black' : 'border-black/30'}`}>
+                    {selectedBranch === opt.id && <div className="w-1.5 h-1.5 rounded-full bg-[#E8E55E]" />}
+                  </div>
+                  <span className="opacity-80">{opt.label}</span>
                 </div>
-                <span className="opacity-80">{opt.label}</span>
-              </div>
-              <span className="text-[9px] font-mono opacity-40 flex-shrink-0 mt-0.5">{opt.probability}</span>
-            </button>
+                <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+                  <span className="text-[9px] font-mono opacity-40">{opt.probability}</span>
+                  {opt.explanation && (
+                    <span
+                      className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors cursor-pointer ${expandedInfo === opt.id ? 'bg-black/20' : 'hover:bg-black/10'}`}
+                      onClick={(e) => { e.stopPropagation(); setExpandedInfo(expandedInfo === opt.id ? null : opt.id); }}
+                    >
+                      <svg className="w-3 h-3 opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                    </span>
+                  )}
+                </div>
+              </button>
+              {expandedInfo === opt.id && opt.explanation && (
+                <div className="mx-3 mt-1 mb-1 px-3 py-2.5 bg-black/[0.08] rounded-lg border border-black/[0.08]">
+                  <p className="text-[11px] leading-relaxed opacity-50 italic">{opt.explanation}</p>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -539,7 +555,7 @@ const BranchPanel = ({ nodeId }) => {
 
 const TimelineView = () => {
   const navigate = useNavigate();
-  const { timeline, selectedNodeId, selectedNode, selectNode, narrationText, narrationLoading, loadNarration, loading } = useStore();
+  const { timeline, selectedNodeId, selectedNode, renderPack, selectNode, narrationText, narrationLoading, loadNarration, loading } = useStore();
   const [branchOpenNodeId, setBranchOpenNodeId] = useState(null);
 
   useEffect(() => {
@@ -568,7 +584,7 @@ const TimelineView = () => {
   const activeTitle = selectedNode?.eventSpec?.title || timeline[selectedIdx]?.title || 'Select an event';
   const causalVars = selectedNode?.worldState?.causalVars || {};
 
-  const bgImage = selectedNode?.renderPack?.anchorImageUrl || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
+  const bgImage = renderPack?.anchorImageUrl || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
 
   return (
     <SimLayout>
