@@ -397,8 +397,7 @@ const SimHeader = () => {
           </svg>
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] font-medium text-white/30 uppercase tracking-[0.2em] mb-0.5">Ripple</span>
-          <span className="text-sm font-semibold tracking-wide text-white/90">RIPPLE SYSTEM v2.4</span>
+          <span className="text-sm font-semibold tracking-wide text-white/90">Ripple</span>
         </div>
       </button>
       <div className="flex items-center gap-3">
