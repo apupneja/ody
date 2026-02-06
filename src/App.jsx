@@ -655,8 +655,9 @@ const OdysseyPlayer = ({ sessionId, renderPack, anchorImageUrl }) => {
 
 const TimelineView = () => {
   const navigate = useNavigate();
-  const { timeline, selectedNodeId, selectedNode, renderPack, selectNode, narrationText, narrationLoading, loadNarration, loading, sessionId } = useStore();
+  const { timeline, selectedNodeId, selectedNode, renderPack, selectNode, narrationText, narrationAudioUrl, narrationLoading, loadNarration, loading, sessionId } = useStore();
   const [branchOpenNodeId, setBranchOpenNodeId] = useState(null);
+  const narrationAudioRef = useRef(null);
 
   useEffect(() => {
     // Auto-select first node if none selected
@@ -664,6 +665,46 @@ const TimelineView = () => {
       selectNode(timeline[0].id);
     }
   }, [timeline]);
+
+  // Resolve the best available audio URL (narrate button response, or pregenerated in renderPack)
+  const activeAudioUrl = narrationAudioUrl || renderPack?.audioUrl || null;
+
+  // Play narration audio when it becomes available
+  useEffect(() => {
+    if (narrationAudioRef.current) {
+      narrationAudioRef.current.pause();
+      narrationAudioRef.current = null;
+    }
+    if (!activeAudioUrl) return;
+
+    // Convert base64 data URL to blob URL for reliable playback
+    let blobUrl = null;
+    try {
+      if (activeAudioUrl.startsWith('data:')) {
+        const [header, b64] = activeAudioUrl.split(',');
+        const mime = header.match(/data:(.*?);/)?.[1] || 'audio/mpeg';
+        const bytes = atob(b64);
+        const arr = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+        const blob = new Blob([arr], { type: mime });
+        blobUrl = URL.createObjectURL(blob);
+      }
+    } catch (e) {
+      console.error('[Narration] Failed to decode audio:', e);
+    }
+
+    const audio = new Audio(blobUrl || activeAudioUrl);
+    narrationAudioRef.current = audio;
+    audio.play().catch((err) => console.error('[Narration] Play failed:', err));
+
+    return () => {
+      if (narrationAudioRef.current) {
+        narrationAudioRef.current.pause();
+        narrationAudioRef.current = null;
+      }
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [activeAudioUrl]);
 
   if (loading || timeline.length === 0) {
     return (

@@ -32,6 +32,7 @@ const useStore = create((set, get) => ({
 
   // Narration
   narrationText: null,
+  narrationAudioUrl: null,
   narrationLoading: false,
 
   // Generation prompt (non-empty = custom scenario, empty = seed data)
@@ -98,7 +99,7 @@ const useStore = create((set, get) => ({
   },
 
   selectNode: async (nodeId) => {
-    set({ selectedNodeId: nodeId, narrationText: null, suggestions: [] });
+    set({ selectedNodeId: nodeId, narrationText: null, narrationAudioUrl: null, suggestions: [] });
     get().loadNodeDetail(nodeId);
   },
 
@@ -167,7 +168,7 @@ const useStore = create((set, get) => ({
     set({ narrationLoading: true });
     try {
       const data = await getNarration(sessionId, nodeId);
-      set({ narrationText: data.narrationText, narrationLoading: false });
+      set({ narrationText: data.narrationText, narrationAudioUrl: data.audioUrl || null, narrationLoading: false });
     } catch (err) {
       set({ narrationLoading: false, error: err.message });
     }
