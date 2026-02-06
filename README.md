@@ -1,5 +1,8 @@
 # Ody
 
+<img width="1311" height="842" alt="image" src="https://github.com/user-attachments/assets/d9c4534d-4de5-4968-bd39-08b565ddd52c" />
+
+
 Ody is an alternate-history simulation app. You pick a historical scenario, select a turning point on the timeline, describe a "what if" change, and watch the consequences ripple forward through subsequent events. Each fork creates a branching timeline with cascading effects on factions, people, and geopolitical variables.
 
 The backend uses the Claude Agent SDK to orchestrate specialized subagents -- one interprets user edits into structured world-state deltas, one generates plausible continuation events, one scores branches for plausibility, and one produces documentary-style narration. When no API key is set, the app falls back to precomputed seed data so it works out of the box.
