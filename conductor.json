@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "setup": "npm install",
+    "run": "export BACKEND_PORT=$(($CONDUCTOR_PORT + 1000)) && echo \"Frontend: http://localhost:$CONDUCTOR_PORT\" && echo \"Backend: http://localhost:$BACKEND_PORT\" && (PORT=$BACKEND_PORT node --watch server/index.js) & (BACKEND_PORT=$BACKEND_PORT npx vite --port $CONDUCTOR_PORT)"
+  }
+}
