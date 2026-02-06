@@ -168,18 +168,44 @@ const LandingView = () => {
   const [query, setQuery] = useState('');
   const [configOpen, setConfigOpen] = useState(false);
   const { loading, error, initScenario, config, setConfig } = useStore();
-  const handleScenarioClick = async () => {
-    await initScenario();
+  const handleScenarioClick = async (scenario) => {
+    const ww2Slugs = ['pearl-harbor', 'hiroshima'];
+    if (ww2Slugs.includes(scenario.slug)) {
+      await initScenario({ scenarioType: 'ww2' });
+    } else {
+      await initScenario({
+        scenarioType: 'generated',
+        title: scenario.title,
+        subtitle: scenario.subtitle,
+        nodes: scenario.nodes,
+      });
+    }
     navigate('/simulation');
   };
 
   const handleSubmit = async () => {
-    await initScenario();
+    if (!query.trim()) return;
+    await initScenario({
+      scenarioType: 'generated',
+      description: query.trim(),
+    });
     navigate('/simulation');
   };
 
   return (
     <div className="w-full min-h-screen bg-black overflow-y-auto">
+      {loading && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-6">
+            <Spinner className="w-10 h-10" />
+            <div className="text-center">
+              <h3 className="text-lg text-white/80 mb-2">Generating Scenario</h3>
+              <p className="text-sm text-white/40">Building world state and timeline events...</p>
+              <p className="text-xs text-white/20 mt-2">This typically takes 15-30 seconds</p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="flex justify-between items-center px-8 py-5 border-b border-white/[0.04] sticky top-0 bg-black/80 backdrop-blur-md z-50">
         <div className="flex items-center gap-3">
@@ -1038,8 +1064,18 @@ const ScenarioView = () => {
 
   useEffect(() => {
     const init = async () => {
-      if (!sessionId) {
-        await initScenario();
+      if (!sessionId && scenario) {
+        const ww2Slugs = ['pearl-harbor', 'hiroshima'];
+        if (ww2Slugs.includes(scenario.slug)) {
+          await initScenario({ scenarioType: 'ww2' });
+        } else {
+          await initScenario({
+            scenarioType: 'generated',
+            title: scenario.title,
+            subtitle: scenario.subtitle,
+            nodes: scenario.nodes,
+          });
+        }
       }
     };
     init();

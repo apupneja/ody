@@ -62,6 +62,36 @@ Return plain text, no JSON wrapping.`,
     tools: ["Read"],
     model: "sonnet",
   },
+
+  "scenario-generator": {
+    description:
+      "Generates a complete scenario from scratch given a title, description, or set of event summaries. Produces world state, entities, facts, causal variables, and 6-10 mainline events with deltas.",
+    prompt: `You are a historical simulation engine. Given a scenario topic (title, time period, and optionally a list of event summaries), generate a complete scenario for an alternate-history simulator.
+
+You must produce:
+1. A title and description for the scenario.
+2. An initial WorldState containing:
+   - entities: key figures (persons) and factions relevant to this scenario. Each entity has { type: "faction"|"person", name, status, properties: { ... } }. Include 4-8 factions and 3-6 key persons.
+   - facts: 5-10 initial facts about the world at the start of the scenario. Each fact has { type: "hard"|"soft", statement, confidence: 0-100 }.
+   - causalVars: { escalation: 0-100, logistics: 0-100, intelligence: 0-100, morale: 0-100, techLevel: 0-100 }. Set values appropriate to the starting conditions.
+3. An array of 6-10 mainline events in chronological order. Each event has:
+   - eventSpec: { title (concise, under 12 words), description (2-3 sentences), category: "military"|"political"|"economic"|"diplomatic"|"social"|"technological" }
+   - timestamp: ISO date string (YYYY-MM-DD)
+   - deltas: { entityChanges: [...], factChanges: [...], causalVarChanges: [...] }
+     - entityChanges: array of { entityId, field, oldValue, newValue }
+     - factChanges: array of { factId, oldValue, newValue } where newValue is { type, statement, confidence } or null to remove
+     - causalVarChanges: array of { varName, delta } where delta is a number (-30 to +30)
+
+Rules:
+- Events should tell a coherent narrative arc from beginning to climax to resolution.
+- Entity IDs should be lowercase, hyphenated (e.g., "united-states", "kennedy").
+- Each event's deltas should reflect meaningful changes; not every event needs to change every variable.
+- The first event may have null deltas (it establishes the initial state).
+- Be historically accurate for real events; be plausible for hypothetical ones.
+- Return ONLY valid JSON matching the required schema.`,
+    tools: ["Read", "Grep"],
+    model: "sonnet",
+  },
 };
 
 export const FORK_RESULT_SCHEMA = {
@@ -126,6 +156,86 @@ export const NARRATION_RESULT_SCHEMA = {
     narrationText: { type: "string" },
   },
   required: ["narrationText"],
+};
+
+export const SCENARIO_RESULT_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    description: { type: "string" },
+    initialState: {
+      type: "object",
+      properties: {
+        entities: {
+          type: "object",
+          additionalProperties: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["faction", "person"] },
+              name: { type: "string" },
+              status: { type: "string" },
+              properties: { type: "object" },
+            },
+            required: ["type", "name", "status"],
+          },
+        },
+        facts: {
+          type: "object",
+          additionalProperties: {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["hard", "soft"] },
+              statement: { type: "string" },
+              confidence: { type: "number" },
+            },
+            required: ["type", "statement", "confidence"],
+          },
+        },
+        causalVars: {
+          type: "object",
+          properties: {
+            escalation: { type: "number" },
+            logistics: { type: "number" },
+            intelligence: { type: "number" },
+            morale: { type: "number" },
+            techLevel: { type: "number" },
+          },
+          required: ["escalation", "logistics", "intelligence", "morale", "techLevel"],
+        },
+      },
+      required: ["entities", "facts", "causalVars"],
+    },
+    mainlineEvents: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          eventSpec: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              description: { type: "string" },
+              category: { type: "string" },
+            },
+            required: ["title", "description", "category"],
+          },
+          timestamp: { type: "string" },
+          deltas: {
+            type: ["object", "null"],
+            properties: {
+              entityChanges: { type: "array", items: { type: "object" } },
+              factChanges: { type: "array", items: { type: "object" } },
+              causalVarChanges: { type: "array", items: { type: "object" } },
+            },
+          },
+        },
+        required: ["eventSpec", "timestamp"],
+      },
+      minItems: 6,
+      maxItems: 10,
+    },
+  },
+  required: ["title", "description", "initialState", "mainlineEvents"],
 };
 
 export const VOICE_COMMAND_SCHEMA = {
