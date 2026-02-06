@@ -127,7 +127,7 @@ const LandingView = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [configOpen, setConfigOpen] = useState(false);
-  const [configHorizon, setConfigHorizon] = useState('Near Future');
+  const [configHorizon, setConfigHorizon] = useState('Future');
   const [configLength, setConfigLength] = useState('20 min');
   const [configDetail, setConfigDetail] = useState('Standard');
 
@@ -221,7 +221,7 @@ const LandingView = () => {
               <div>
                 <span className="text-[10px] uppercase tracking-wider text-white/30 mb-3 block">Time Horizon</span>
                 <div className="space-y-1.5">
-                  {['Near Future', 'Mid-Range', 'Far Future'].map((opt) => (
+                  {['Future', 'Past'].map((opt) => (
                     <button
                       key={opt}
                       onClick={() => setConfigHorizon(opt)}
