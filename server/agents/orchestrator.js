@@ -84,6 +84,68 @@ Return only the narration text as plain text, no JSON.`;
   return narration ?? "Narration unavailable.";
 }
 
+export async function generateImagePrompt(eventNode) {
+  let prompt = null;
+  for await (const message of query({
+    prompt: `Generate a single cinematic image prompt for an AI image generator. The image should depict this historical event:
+
+Event: ${eventNode.eventSpec.title}
+Description: ${eventNode.eventSpec.description}
+Category: ${eventNode.eventSpec.category}
+Timeline: ${eventNode.branchId === "main" ? "mainline history" : "alternate history"}
+Date: ${eventNode.timestamp}
+
+Write a detailed, vivid image prompt (1-3 sentences) describing the scene visually. Include lighting, atmosphere, composition. Style: photorealistic historical documentary still, cinematic lighting, 16:9 aspect ratio. Do NOT include any text or labels in the image.
+
+Return ONLY the image prompt text, no JSON, no quotes.`,
+    options: {
+      model: "haiku",
+      allowedTools: [],
+      permissionMode: "bypassPermissions",
+      allowDangerouslySkipPermissions: true,
+      maxTurns: 1,
+      maxBudgetUsd: 0.02,
+    },
+  })) {
+    if (message.type === "result" && message.subtype === "success") {
+      prompt = message.result;
+    }
+  }
+
+  return prompt ?? `Historical scene: ${eventNode.eventSpec.title}. ${eventNode.eventSpec.description}. Photorealistic, cinematic lighting, documentary style.`;
+}
+
+export async function generateVideoPrompt(eventNode) {
+  let prompt = null;
+  for await (const message of query({
+    prompt: `Generate a short video scene description for an AI video generator. The video should depict this historical event:
+
+Event: ${eventNode.eventSpec.title}
+Description: ${eventNode.eventSpec.description}
+Category: ${eventNode.eventSpec.category}
+Timeline: ${eventNode.branchId === "main" ? "mainline history" : "alternate history"}
+Date: ${eventNode.timestamp}
+
+Write a concise scene description (1-2 sentences) focusing on motion and action. What is happening visually? What movement should be shown?
+
+Return ONLY the scene description text, no JSON, no quotes.`,
+    options: {
+      model: "haiku",
+      allowedTools: [],
+      permissionMode: "bypassPermissions",
+      allowDangerouslySkipPermissions: true,
+      maxTurns: 1,
+      maxBudgetUsd: 0.02,
+    },
+  })) {
+    if (message.type === "result" && message.subtype === "success") {
+      prompt = message.result;
+    }
+  }
+
+  return prompt ?? `Historical scene of ${eventNode.eventSpec.title}. ${eventNode.eventSpec.description}`;
+}
+
 export async function parseVoiceCommand(transcript) {
   let result = null;
   for await (const message of query({

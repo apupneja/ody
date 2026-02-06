@@ -7,6 +7,7 @@ export class RenderPack {
     microPromptSchedule = [],
     clipUrl = null,
     narrationText = null,
+    audioUrl = null,
   }) {
     this.id = id ?? crypto.randomUUID();
     this.eventNodeId = eventNodeId;
@@ -15,6 +16,7 @@ export class RenderPack {
     this.microPromptSchedule = microPromptSchedule;
     this.clipUrl = clipUrl;
     this.narrationText = narrationText;
+    this.audioUrl = audioUrl;
   }
 
   toJSON() {
@@ -26,6 +28,7 @@ export class RenderPack {
       microPromptSchedule: this.microPromptSchedule,
       clipUrl: this.clipUrl,
       narrationText: this.narrationText,
+      audioUrl: this.audioUrl,
     };
   }
 

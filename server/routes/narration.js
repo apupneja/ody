@@ -1,6 +1,7 @@
 import { Router } from "express";
 import sessionStore from "../store/SessionStore.js";
 import * as agentService from "../services/agentService.js";
+import { generateSpeech } from "../services/ttsService.js";
 
 const router = Router({ mergeParams: true });
 
@@ -15,14 +16,18 @@ router.post("/", async (req, res) => {
   if (!node) return res.status(404).json({ error: "Node not found" });
 
   const narrationText = await agentService.generateNarration(node);
+  const audioUrl = await generateSpeech(narrationText);
 
-  // Store narration in render pack if one exists
+  // Store narration and audio in render pack if one exists
   if (node.renderPackId) {
     const rp = session.renderPacks.get(node.renderPackId);
-    if (rp) rp.narrationText = narrationText;
+    if (rp) {
+      rp.narrationText = narrationText;
+      rp.audioUrl = audioUrl;
+    }
   }
 
-  res.json({ narrationText, audioUrl: null });
+  res.json({ narrationText, audioUrl });
 });
 
 export default router;
