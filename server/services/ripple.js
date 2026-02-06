@@ -2,6 +2,7 @@ import sessionStore from "../store/SessionStore.js";
 import * as agentService from "./agentService.js";
 import { EventNode } from "../models/EventNode.js";
 import { RenderPack } from "../models/RenderPack.js";
+import { getPregenerated } from "./seed/pregeneratedContent.js";
 
 export async function executeFork(sessionId, nodeId, forkDescription) {
   const session = sessionStore.get(sessionId);
@@ -75,16 +76,28 @@ export async function executeFork(sessionId, nodeId, forkDescription) {
     return node;
   });
 
-  // Create render packs for all new nodes
+  // Create render packs for all new nodes, using pre-generated content when available
   const allNodes = [forkNode, ...rippleNodes];
-  const renderPacks = allNodes.map((node) => {
+  const contentKeys = [
+    agentResult.contentKey ?? null,
+    ...(agentResult.continuationEvents || []).map((c) => c.contentKey ?? null),
+  ];
+
+  const renderPacks = allNodes.map((node, idx) => {
+    const contentKey = contentKeys[idx] || null;
+    const pregen = contentKey ? getPregenerated(contentKey) : null;
+
     const rp = new RenderPack({
       eventNodeId: node.id,
-      sceneBible: `[${node.eventSpec.category.toUpperCase()}] ${node.eventSpec.title}\n\n${node.eventSpec.description}`,
+      sceneBible: `[${node.eventSpec.category.toUpperCase()}] ${node.eventSpec.title}\n\n${node.eventSpec.description}\n\nDynamics: Use very slight movements only — gentle smoke drift, faint breeze on fabric, slowly shifting light. Stative present-continuous descriptions. Fixed or very slowly drifting camera.`,
+      contentKey,
+      narrationText: pregen?.narrationText ?? null,
+      audioUrl: pregen?.audioUrl ?? null,
+      anchorImageUrl: pregen?.anchorImageUrl ?? null,
       microPromptSchedule: [
-        { offsetSec: 0, prompt: `Establishing shot: ${node.eventSpec.title}` },
-        { offsetSec: 5, prompt: `Key moment: ${node.eventSpec.description}` },
-        { offsetSec: 10, prompt: `Aftermath and transition` },
+        { offsetSec: 0, prompt: `Wide establishing shot of ${node.eventSpec.title}. Atmosphere is still, light is slowly shifting, faint haze is drifting across the frame. Camera is static, deep focus.` },
+        { offsetSec: 5, prompt: `Medium shot, key moment: ${node.eventSpec.description}. Dust motes are floating in shafts of light, subtle shadows are creeping across surfaces. Camera is gently drifting closer, shallow focus.` },
+        { offsetSec: 10, prompt: `Slow pull-back, aftermath. Smoke is barely curling upward, ambient light is gradually dimming. Camera is slowly retreating, wide-angle lens.` },
       ],
     });
     node.renderPackId = rp.id;

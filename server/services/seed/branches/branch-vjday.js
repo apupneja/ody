@@ -20,6 +20,8 @@ export const VJDAY_BRANCHES = [
         { varName: "logistics", delta: -10 },
       ],
     },
+    explanation:
+      "Several key figures opposed using the bomb on cities. Leo Szilard circulated a petition signed by 70 Manhattan Project scientists. Eisenhower privately told Stimson it was unnecessary. Even within Truman's inner circle, there was debate about a demonstration shot. The decision to bomb Hiroshima was not inevitable — it was a choice made under immense pressure and uncertainty.",
     forkEventSpec: {
       title: "Truman Rejects Atomic Bomb Use",
       description: "President Truman decides the atomic bomb is too terrible a weapon to use on cities. The US commits to a conventional invasion of Japan projected to cost over a million casualties.",
@@ -97,6 +99,8 @@ export const VJDAY_BRANCHES = [
         { varName: "logistics", delta: -5 },
       ],
     },
+    explanation:
+      "Stalin actually planned to invade Hokkaido, and the operation was only called off at the last moment after Truman firmly objected. The Soviets had already seized the Kuril Islands and southern Sakhalin. A divided Japan — like divided Germany and Korea — was a real possibility that would have created a Cold War flashpoint in the heart of the Pacific.",
     forkEventSpec: {
       title: "Soviet Invasion of Hokkaido",
       description: "The Red Army launches a surprise amphibious assault on Hokkaido, racing to establish a Soviet occupation zone in Japan before the Americans can consolidate control.",
@@ -171,6 +175,8 @@ export const VJDAY_BRANCHES = [
         { varName: "morale", delta: -10 },
       ],
     },
+    explanation:
+      "Japan had two secret nuclear programs during the war — one Army (Ni-Go) and one Navy (F-Go). They lacked sufficient uranium and industrial capacity, but the German submarine U-234, which surrendered in May 1945, was carrying 560 kg of uranium oxide destined for Japan. With more resources or time, a Japanese device was not physically impossible — just extremely unlikely.",
     forkEventSpec: {
       title: "Japanese Nuclear Test",
       description: "Japan detonates a crude nuclear device, becoming the second nation to develop atomic weapons. The Pacific war enters a nuclear standoff.",

@@ -20,6 +20,8 @@ export const polandBranches = [
         { variable: "polishResistanceStrength", delta: 40 },
       ],
     },
+    explanation:
+      "In reality, Poland fell in about five weeks. But the Wehrmacht's supply lines were dangerously stretched, and the Blitzkrieg depended on shock and speed. Had autumn rains arrived earlier or Polish forces concentrated along natural river barriers, the offensive could have stalled — as Germany's own generals feared.",
     forkEventSpec: {
       title: "The Vistula Miracle",
       description:
@@ -102,6 +104,8 @@ export const polandBranches = [
         { variable: "europeanWarScope", delta: 30 },
       ],
     },
+    explanation:
+      "The Molotov-Ribbentrop Pact was a marriage of convenience. Stalin deeply distrusted Hitler, and some Soviet strategists argued that a buffer Poland served Soviet interests better than a shared border with Germany. Had Stalin calculated differently, a 1939 Soviet-German clash could have reshaped the entire war.",
     forkEventSpec: {
       title: "The Brest-Litovsk Reversal",
       description:
@@ -185,6 +189,8 @@ export const polandBranches = [
         { variable: "warDuration", delta: -20 },
       ],
     },
+    explanation:
+      "France actually did launch a limited Saar Offensive in September 1939 but halted after advancing just 8 km. With 90% of the Wehrmacht committed in Poland, the Westwall was manned by only 11 reserve divisions. A full-scale French attack could have broken through — a missed opportunity that haunted Allied planners.",
     forkEventSpec: {
       title: "The Saar Gambit",
       description:

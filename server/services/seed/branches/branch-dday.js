@@ -21,6 +21,8 @@ export const DDAY_BRANCHES = [
         { varName: "escalation", delta: 10 },
       ],
     },
+    explanation:
+      "D-Day's success was far from certain. A channel storm had already forced a one-day delay. Rommel had requested panzer reserves be positioned near the coast, but Hitler kept them inland. Had the weather been worse or the German armored response faster, the beachheads — especially Omaha — could have been overrun before consolidating.",
     forkEventSpec: {
       title: "D-Day Invasion Repelled",
       description: "German forces repel the Normandy landings. The greatest amphibious assault in history ends in catastrophic failure on the beaches.",
@@ -96,6 +98,8 @@ export const DDAY_BRANCHES = [
         { varName: "morale", delta: 5 },
       ],
     },
+    explanation:
+      "Churchill repeatedly advocated for attacking through the 'soft underbelly of Europe' via the Balkans and Italy. American planners opposed this as strategically inferior to a cross-Channel assault. But Churchill's real motivation may have been geopolitical — reaching Vienna and Budapest before the Red Army to prevent Soviet domination of Central Europe.",
     forkEventSpec: {
       title: "Allied Balkan Invasion",
       description: "The Western Allies invade through the Balkans rather than Normandy, pursuing Churchill's strategy to reach Central Europe before the Soviets.",
@@ -172,6 +176,8 @@ export const DDAY_BRANCHES = [
         { varName: "intelligence", delta: 10 },
       ],
     },
+    explanation:
+      "The July 20 plot came agonizingly close to success. Stauffenberg's briefcase bomb was moved behind a heavy table leg moments before detonation, shielding Hitler. Had the conference been held in a concrete bunker (as originally planned) rather than a wooden hut, the blast would have been lethal. A post-Hitler Germany seeking peace in mid-1944 would have transformed the postwar order.",
     forkEventSpec: {
       title: "Successful July 20 Plot",
       description: "Colonel Stauffenberg's bomb kills Hitler. Wehrmacht conspirators execute Operation Valkyrie, seize control of Berlin, and broadcast an offer of armistice to the Western Allies.",

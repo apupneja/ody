@@ -39,7 +39,7 @@ export async function generateImagePrompt(eventNode) {
 
 export async function generateVideoPrompt(eventNode) {
   const { title, description } = eventNode.eventSpec;
-  return `Historical scene of ${title}. ${description}. Camera slowly panning across the scene, dramatic lighting, documentary style.`;
+  return `Photorealistic historical scene depicting ${title}. ${description}. Soft diffused light is filtering through haze, smoke is gently curling upward, a flag is barely stirring in a faint breeze. Camera is slowly drifting forward at eye-level, shallow focus, documentary cinematography.`;
 }
 
 export async function parseVoiceCommand(transcript) {
@@ -86,12 +86,15 @@ function buildResultFromPrecomputed(match, worldState) {
     eventSpec: cont.eventSpec,
     deltas: cont.deltas || { entityChanges: [], factChanges: [], causalVarChanges: [] },
     timestamp: cont.timestamp,
+    contentKey: cont.contentKey ?? null,
   }));
 
   return {
     delta,
     continuationEvents,
     branchScores: match.branchPriors,
+    contentKey: match.contentKey ?? null,
+    pregenRenderPack: match.renderPack ?? null,
   };
 }
 

@@ -118,7 +118,7 @@ Return ONLY the image prompt text, no JSON, no quotes.`,
 export async function generateVideoPrompt(eventNode) {
   let prompt = null;
   for await (const message of query({
-    prompt: `Generate a short video scene description for an AI video generator. The video should depict this historical event:
+    prompt: `Generate a scene description for the Odyssey-2 Pro AI video generator. The video should depict this historical event:
 
 Event: ${eventNode.eventSpec.title}
 Description: ${eventNode.eventSpec.description}
@@ -126,7 +126,14 @@ Category: ${eventNode.eventSpec.category}
 Timeline: ${eventNode.branchId === "main" ? "mainline history" : "alternate history"}
 Date: ${eventNode.timestamp}
 
-Write a concise scene description (1-2 sentences) focusing on motion and action. What is happening visually? What movement should be shown?
+CRITICAL RULES for Odyssey-2 Pro prompting:
+- Describe VERY SLIGHT, SUBTLE movements only — gentle drifting smoke, a flag barely stirring, light shifting slowly, dust motes floating. Avoid large or fast movements.
+- Use STATIVE present-continuous verbs for stable conditions ("is standing", "is wearing", "is resting") NOT dynamic action verbs ("puts on", "picks up") which cause looping artifacts.
+- Structure: Subject + environment + subtle motion + camera position + lighting/mood.
+- Camera: Use a fixed or very slowly drifting camera (e.g., "camera is slowly drifting forward", "static eye-level shot").
+- Include: time of day, weather, atmosphere, lens type (e.g., "shallow focus", "wide-angle lens").
+- Style: photorealistic historical documentary, cinematic lighting.
+- Keep it to 2-3 sentences max.
 
 Return ONLY the scene description text, no JSON, no quotes.`,
     options: {
@@ -143,7 +150,7 @@ Return ONLY the scene description text, no JSON, no quotes.`,
     }
   }
 
-  return prompt ?? `Historical scene of ${eventNode.eventSpec.title}. ${eventNode.eventSpec.description}`;
+  return prompt ?? `Photorealistic historical scene of ${eventNode.eventSpec.title}. ${eventNode.eventSpec.description}. Soft golden-hour light is filtering through haze, dust motes are drifting slowly in the air, camera is gently drifting forward, shallow focus, documentary style.`;
 }
 
 export async function parseVoiceCommand(transcript) {

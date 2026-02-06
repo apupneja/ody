@@ -8,6 +8,7 @@ export class RenderPack {
     clipUrl = null,
     narrationText = null,
     audioUrl = null,
+    contentKey = null,
   }) {
     this.id = id ?? crypto.randomUUID();
     this.eventNodeId = eventNodeId;
@@ -17,6 +18,7 @@ export class RenderPack {
     this.clipUrl = clipUrl;
     this.narrationText = narrationText;
     this.audioUrl = audioUrl;
+    this.contentKey = contentKey;
   }
 
   toJSON() {
@@ -29,6 +31,7 @@ export class RenderPack {
       clipUrl: this.clipUrl,
       narrationText: this.narrationText,
       audioUrl: this.audioUrl,
+      contentKey: this.contentKey,
     };
   }
 
