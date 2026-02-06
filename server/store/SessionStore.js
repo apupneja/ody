@@ -3,11 +3,12 @@ class SessionStore {
     this.sessions = new Map();
   }
 
-  create(sessionId, { graph, renderPacks, metadata }) {
+  create(sessionId, { graph, renderPacks, metadata, precomputedBranches }) {
     const session = {
       graph,
       renderPacks: renderPacks instanceof Map ? renderPacks : new Map(),
       metadata,
+      precomputedBranches: precomputedBranches || [],
       createdAt: Date.now(),
     };
     this.sessions.set(sessionId, session);
