@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useOdyssey } from '@odysseyml/odyssey/react';
 import useStore from './store/useStore.js';
 import { streamGeneration } from './api/generate.js';
+import { getVideoSession } from './api/timeline.js';
 
 /* ─── Shared Components ─── */
 
@@ -169,7 +171,11 @@ const LandingView = () => {
   const [configOpen, setConfigOpen] = useState(false);
   const { loading, error, initScenario, config, setConfig, setUserPrompt } = useStore();
   const handleScenarioClick = (scenario) => {
-    setUserPrompt(scenario.title); // generate with Claude for this scenario
+    if (scenario.slug === 'ww2') {
+      setUserPrompt(''); // use seed data for WW2
+    } else {
+      setUserPrompt(scenario.title);
+    }
     navigate('/generating');
   };
 
@@ -551,12 +557,107 @@ const BranchPanel = ({ nodeId }) => {
   );
 };
 
+/* ─── Odyssey Video Player ─── */
+
+const OdysseyPlayer = ({ sessionId, renderPack, anchorImageUrl }) => {
+  const videoRef = useRef(null);
+  const [videoSession, setVideoSession] = useState(null);
+  const [streamStarted, setStreamStarted] = useState(false);
+  const [streamError, setStreamError] = useState(null);
+  const prevRenderPackId = useRef(null);
+
+  const odyssey = useOdyssey({
+    apiKey: videoSession?.apiKey || 'pending',
+    handlers: {
+      onConnected: (mediaStream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          videoRef.current.play().catch(() => {});
+        }
+      },
+      onDisconnected: () => {
+        if (videoRef.current) videoRef.current.srcObject = null;
+        setStreamStarted(false);
+      },
+      onStreamStarted: () => setStreamStarted(true),
+      onError: (err) => setStreamError(err),
+      onStreamError: (err) => setStreamError(err),
+    },
+  });
+
+  // Fetch video session when renderPack changes
+  useEffect(() => {
+    if (!renderPack?.id || !sessionId || renderPack.id === prevRenderPackId.current) return;
+    prevRenderPackId.current = renderPack.id;
+    setVideoSession(null);
+    setStreamStarted(false);
+    setStreamError(null);
+
+    getVideoSession(sessionId, renderPack.id)
+      .then((data) => { if (data.available) setVideoSession(data); })
+      .catch(() => {});
+  }, [renderPack?.id, sessionId]);
+
+  // Connect + start stream when we have a video session with a valid API key
+  useEffect(() => {
+    if (!videoSession?.apiKey || !videoSession?.prompt) return;
+    if (odyssey.isConnected || odyssey.status === 'connecting' || odyssey.status === 'authenticating') return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await odyssey.connect();
+        if (cancelled) return;
+        await odyssey.startStream({ prompt: videoSession.prompt, portrait: videoSession.portrait ?? false });
+      } catch (err) {
+        if (!cancelled) setStreamError(err?.message || String(err));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (odyssey.isConnected) odyssey.disconnect();
+    };
+  }, [videoSession?.apiKey, videoSession?.prompt]);
+
+  const bgImage = anchorImageUrl || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
+  const isLoading = !streamStarted && videoSession && !streamError;
+
+  return (
+    <>
+      {/* Fallback background image (shows until stream connects, or if no video session) */}
+      <div
+        className={`absolute inset-0 bg-cover bg-center transition-opacity duration-700 ${streamStarted ? 'opacity-0' : 'opacity-100'}`}
+        style={{ backgroundImage: `url('${bgImage}')` }}
+      />
+      {/* Odyssey video stream */}
+      <video
+        ref={videoRef}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${streamStarted ? 'opacity-100' : 'opacity-0'}`}
+        autoPlay
+        playsInline
+        muted
+      />
+      {/* Loading spinner while video stream is connecting */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="flex flex-col items-center gap-3">
+            <Spinner className="w-8 h-8" />
+            <span className="text-xs text-white/40 uppercase tracking-wider">Generating stream...</span>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 /* ─── Timeline View ─── */
 
 const TimelineView = () => {
   const navigate = useNavigate();
-  const { timeline, selectedNodeId, selectedNode, renderPack, selectNode, narrationText, narrationLoading, loadNarration, loading } = useStore();
+  const { timeline, selectedNodeId, selectedNode, renderPack, selectNode, narrationText, narrationAudioUrl, narrationLoading, loadNarration, loading, sessionId } = useStore();
   const [branchOpenNodeId, setBranchOpenNodeId] = useState(null);
+  const narrationAudioRef = useRef(null);
 
   useEffect(() => {
     // Auto-select first node if none selected
@@ -564,6 +665,46 @@ const TimelineView = () => {
       selectNode(timeline[0].id);
     }
   }, [timeline]);
+
+  // Resolve the best available audio URL (narrate button response, or pregenerated in renderPack)
+  const activeAudioUrl = narrationAudioUrl || renderPack?.audioUrl || null;
+
+  // Play narration audio when it becomes available
+  useEffect(() => {
+    if (narrationAudioRef.current) {
+      narrationAudioRef.current.pause();
+      narrationAudioRef.current = null;
+    }
+    if (!activeAudioUrl) return;
+
+    // Convert base64 data URL to blob URL for reliable playback
+    let blobUrl = null;
+    try {
+      if (activeAudioUrl.startsWith('data:')) {
+        const [header, b64] = activeAudioUrl.split(',');
+        const mime = header.match(/data:(.*?);/)?.[1] || 'audio/mpeg';
+        const bytes = atob(b64);
+        const arr = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+        const blob = new Blob([arr], { type: mime });
+        blobUrl = URL.createObjectURL(blob);
+      }
+    } catch (e) {
+      console.error('[Narration] Failed to decode audio:', e);
+    }
+
+    const audio = new Audio(blobUrl || activeAudioUrl);
+    narrationAudioRef.current = audio;
+    audio.play().catch((err) => console.error('[Narration] Play failed:', err));
+
+    return () => {
+      if (narrationAudioRef.current) {
+        narrationAudioRef.current.pause();
+        narrationAudioRef.current = null;
+      }
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [activeAudioUrl]);
 
   if (loading || timeline.length === 0) {
     return (
@@ -584,14 +725,12 @@ const TimelineView = () => {
   const activeTitle = selectedNode?.eventSpec?.title || timeline[selectedIdx]?.title || 'Select an event';
   const causalVars = selectedNode?.worldState?.causalVars || {};
 
-  const bgImage = renderPack?.anchorImageUrl || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
-
   return (
     <SimLayout>
       <div className="w-full h-full flex transition-opacity duration-300">
         {/* Left panel - clip viewer */}
         <div className="flex-grow h-full relative border-r border-white/[0.06] bg-black overflow-hidden group">
-          <div className="absolute inset-0 bg-cover bg-center opacity-25 mix-blend-overlay" style={{ backgroundImage: `url('${bgImage}')` }} />
+          <OdysseyPlayer sessionId={sessionId} renderPack={renderPack} anchorImageUrl={renderPack?.anchorImageUrl} />
           <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
           <div className="absolute top-8 left-8 flex gap-4">
@@ -610,12 +749,6 @@ const TimelineView = () => {
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /></svg>
               )}
               Narrate
-            </button>
-          </div>
-
-          <div className="absolute inset-0 flex items-center justify-center">
-            <button className="w-20 h-20 rounded-full border border-white/15 flex items-center justify-center hover:bg-white/5 hover:border-white/30 transition-all duration-300 group-hover:scale-110">
-              <svg className="w-8 h-8 fill-white/80 ml-1" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
             </button>
           </div>
 
@@ -1269,7 +1402,7 @@ const GeneratingView = () => {
 
   const phaseLabels = [
     '',
-    isCustom ? 'Generating world model with Claude' : 'Initializing world model',
+    isCustom ? 'Generating world' : 'Initializing world model',
     'Instantiating factions',
     'Identifying key figures',
     'Building intelligence network',

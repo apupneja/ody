@@ -15,3 +15,7 @@ export function executeFork(sessionId, nodeId, description) {
 export function getSuggestions(sessionId, nodeId) {
   return get(`/scenarios/${sessionId}/timeline/nodes/${nodeId}/suggestions`);
 }
+
+export function getVideoSession(sessionId, renderPackId) {
+  return post(`/scenarios/${sessionId}/render/${renderPackId}/video-session`, {});
+}
