@@ -97,3 +97,64 @@ body {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+/* Generation screen animations */
+@keyframes gen-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes gen-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gen-scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes gen-bar-fill {
+  from { width: 0%; }
+}
+
+@keyframes gen-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(232, 229, 94, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(232, 229, 94, 0.5); }
+}
+
+@keyframes gen-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes gen-typewriter-line {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.gen-item-enter {
+  animation: gen-slide-up 0.35s ease-out both;
+}
+
+.gen-gauge-fill {
+  animation: gen-bar-fill 0.8s ease-out both;
+}
+
+.gen-pulse {
+  animation: gen-pulse 2s ease-in-out infinite;
+}
+
+.gen-glow {
+  animation: gen-glow 2s ease-in-out infinite;
+}
+
+.gen-cursor {
+  animation: gen-cursor-blink 0.8s step-end infinite;
+}

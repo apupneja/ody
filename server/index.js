@@ -8,6 +8,7 @@ import timelineRouter from "./routes/timeline.js";
 import narrationRouter from "./routes/narration.js";
 import voiceRouter from "./routes/voice.js";
 import renderRouter from "./routes/render.js";
+import generateRouter from "./routes/generate.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -34,6 +35,7 @@ app.use("/api/scenarios/:sessionId/timeline", timelineRouter);
 app.use("/api/scenarios/:sessionId/narrate", narrationRouter);
 app.use("/api/scenarios/:sessionId/render", renderRouter);
 app.use("/api/voice-command", voiceRouter);
+app.use("/api/generate", generateRouter);
 
 // Serve static frontend in production
 const distPath = path.join(__dirname, "..", "dist");
