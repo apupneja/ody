@@ -1,11 +1,15 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import scenariosRouter from "./routes/scenarios.js";
 import timelineRouter from "./routes/timeline.js";
 import narrationRouter from "./routes/narration.js";
 import voiceRouter from "./routes/voice.js";
 import renderRouter from "./routes/render.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -30,6 +34,14 @@ app.use("/api/scenarios/:sessionId/timeline", timelineRouter);
 app.use("/api/scenarios/:sessionId/narrate", narrationRouter);
 app.use("/api/scenarios/:sessionId/render", renderRouter);
 app.use("/api/voice-command", voiceRouter);
+
+// Serve static frontend in production
+const distPath = path.join(__dirname, "..", "dist");
+app.use(express.static(distPath));
+app.get("/{*splat}", (req, res, next) => {
+  if (req.path.startsWith("/api")) return next();
+  res.sendFile(path.join(distPath, "index.html"));
+});
 
 app.use((err, req, res, next) => {
   console.error("[Server Error]", err);
