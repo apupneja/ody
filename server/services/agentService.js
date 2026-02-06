@@ -63,3 +63,14 @@ export async function generateVideoPrompt(eventNode) {
     return await mock.generateVideoPrompt(eventNode);
   }
 }
+
+export async function generateScenario(params) {
+  try {
+    return await orchestrator.generateScenario(params);
+  } catch (err) {
+    console.error("[AgentService] Scenario generation failed, falling back to mock:", err.message);
+    const mock = await import("../agents/mockOrchestrator.js");
+    const result = await mock.generateScenario(params);
+    return { ...result, fallbackUsed: true };
+  }
+}

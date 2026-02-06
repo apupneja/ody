@@ -39,10 +39,10 @@ const useStore = create((set, get) => ({
 
   setConfig: (key, value) => set((s) => ({ config: { ...s.config, [key]: value } })),
 
-  initScenario: async () => {
+  initScenario: async (params) => {
     set({ loading: true, error: null });
     try {
-      const data = await createScenario();
+      const data = await createScenario(params);
       const firstNodeId = data.timeline?.[0]?.id ?? null;
       set({
         sessionId: data.sessionId,
